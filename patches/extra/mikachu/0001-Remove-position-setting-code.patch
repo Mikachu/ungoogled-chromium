@@ -1,0 +1,38 @@
+From 9e8bd4507bb7c67b7f69b30e0de8597223de3bbd Mon Sep 17 00:00:00 2001
+From: Mikael Magnusson <mikachu@gmail.com>
+Date: Tue, 16 Jun 2026 23:23:11 +0200
+Subject: [PATCH] Remove position setting code
+
+---
+ ui/ozone/platform/x11/x11_window.cc | 11 -----------
+ 1 file changed, 11 deletions(-)
+
+diff --git a/ui/ozone/platform/x11/x11_window.cc b/ui/ozone/platform/x11/x11_window.cc
+index 27b995c5e0..52dc5ba79a 100644
+--- a/ui/ozone/platform/x11/x11_window.cc
++++ b/ui/ozone/platform/x11/x11_window.cc
+@@ -2007,21 +2007,10 @@ void X11Window::CloseXWindow() {
+ void X11Window::Map(bool inactive) {
+   // Before we map the window, set size hints. Otherwise, some window managers
+   // will ignore toplevel XMoveWindow commands.
+-  x11::SizeHints size_hints = {};
+-  connection_->GetWmNormalHints(xwindow_, &size_hints);
+-  size_hints.flags |= x11::SIZE_HINT_P_POSITION;
+   auto weak_this = weak_ptr_factory_.GetWeakPtr();
+-  const gfx::Rect bounds = GetBoundsInPixels();
+   if (!weak_this) {
+     return;
+   }
+-  size_hints.x = bounds.x();
+-  size_hints.y = bounds.y();
+-  // Set STATIC_GRAVITY so that the window position is not affected by the
+-  // frame width when running with window manager.
+-  size_hints.flags |= x11::SIZE_HINT_P_WIN_GRAVITY;
+-  size_hints.win_gravity = x11::WIN_GRAVITY_HINT_STATIC_GRAVITY;
+-  connection_->SetWmNormalHints(xwindow_, size_hints);
+ 
+   ignore_keyboard_input_ = inactive;
+   auto wm_user_time_ms = ignore_keyboard_input_
+-- 
+2.38.1
+
