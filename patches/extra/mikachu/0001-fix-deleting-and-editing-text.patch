@@ -1,0 +1,111 @@
+From a44cd896051366a94f27a85483c4f7339b351e5d Mon Sep 17 00:00:00 2001
+From: Mikael Magnusson <mikachu@gmail.com>
+Date: Thu, 18 Jun 2026 07:10:10 +0200
+Subject: [PATCH] fix deleting and editing text
+
+---
+ .../commands/composite_edit_command.cc        |  5 ++--
+ .../editing/commands/composite_edit_command.h |  4 ++-
+ .../commands/delete_selection_command.cc      | 28 ++++++++++---------
+ .../insert_paragraph_separator_command.cc     |  2 +-
+ 4 files changed, 22 insertions(+), 17 deletions(-)
+
+diff --git a/third_party/blink/renderer/core/editing/commands/composite_edit_command.cc b/third_party/blink/renderer/core/editing/commands/composite_edit_command.cc
+index 6a56daf555..60cd680331 100644
+--- a/third_party/blink/renderer/core/editing/commands/composite_edit_command.cc
++++ b/third_party/blink/renderer/core/editing/commands/composite_edit_command.cc
+@@ -506,14 +506,15 @@ void CompositeEditCommand::MoveRemainingSiblingsToNewParent(
+     Node* node,
+     Node* past_last_node_to_move,
+     Element* new_parent,
+-    EditingState* editing_state) {
++    EditingState* editing_state,
++    ShouldAssumeContentIsAlwaysEditable assume_editable) {
+   NodeVector nodes_to_remove;
+ 
+   for (; node && node != past_last_node_to_move; node = node->nextSibling())
+     nodes_to_remove.push_back(node);
+ 
+   for (unsigned i = 0; i < nodes_to_remove.size(); i++) {
+-    RemoveNode(nodes_to_remove[i], editing_state);
++    RemoveNode(nodes_to_remove[i], editing_state, assume_editable);
+     if (editing_state->IsAborted())
+       return;
+     AppendNode(nodes_to_remove[i], new_parent, editing_state);
+diff --git a/third_party/blink/renderer/core/editing/commands/composite_edit_command.h b/third_party/blink/renderer/core/editing/commands/composite_edit_command.h
+index 507a1af975..65913eee3d 100644
+--- a/third_party/blink/renderer/core/editing/commands/composite_edit_command.h
++++ b/third_party/blink/renderer/core/editing/commands/composite_edit_command.h
+@@ -183,7 +183,9 @@ class CORE_EXPORT CompositeEditCommand : public EditCommand {
+   void MoveRemainingSiblingsToNewParent(Node*,
+                                         Node* past_last_node_to_move,
+                                         Element* new_parent,
+-                                        EditingState*);
++                                        EditingState*,
++                                        ShouldAssumeContentIsAlwaysEditable =
++                                            ShouldAssumeContentIsAlwaysEditable(false));
+   void UpdatePositionForNodeRemovalPreservingChildren(Position&, Node&);
+   void Prune(Node*, EditingState*, Node* exclude_node = nullptr);
+   void ReplaceTextInNode(Text*,
+diff --git a/third_party/blink/renderer/core/editing/commands/delete_selection_command.cc b/third_party/blink/renderer/core/editing/commands/delete_selection_command.cc
+index 263e5fbf2f..bfa4614395 100644
+--- a/third_party/blink/renderer/core/editing/commands/delete_selection_command.cc
++++ b/third_party/blink/renderer/core/editing/commands/delete_selection_command.cc
+@@ -543,18 +543,20 @@ void DeleteSelectionCommand::RemoveNode(
+     return;
+   }
+ 
+-  GetDocument().UpdateStyleAndLayout(DocumentUpdateReason::kEditing);
+-  if (node == start_block_) {
+-    VisiblePosition previous = PreviousPositionOf(
+-        VisiblePosition::FirstPositionInNode(*start_block_.Get()));
+-    if (previous.IsNotNull() && !IsEndOfBlock(previous))
+-      need_placeholder_ = true;
+-  }
+-  if (node == end_block_) {
+-    VisiblePosition next =
+-        NextPositionOf(VisiblePosition::LastPositionInNode(*end_block_.Get()));
+-    if (next.IsNotNull() && !IsStartOfBlock(next))
+-      need_placeholder_ = true;
++  if (node == start_block_ || node == end_block_ ) {
++    GetDocument().UpdateStyleAndLayout(DocumentUpdateReason::kEditing);
++    if (node == start_block_) {
++      VisiblePosition previous = PreviousPositionOf(
++          VisiblePosition::FirstPositionInNode(*start_block_.Get()));
++      if (previous.IsNotNull() && !IsEndOfBlock(previous))
++        need_placeholder_ = true;
++    }
++    if (node == end_block_) {
++      VisiblePosition next =
++          NextPositionOf(VisiblePosition::LastPositionInNode(*end_block_.Get()));
++      if (next.IsNotNull() && !IsStartOfBlock(next))
++        need_placeholder_ = true;
++    }
+   }
+ 
+   // FIXME: Update the endpoints of the range being deleted.
+@@ -630,7 +632,7 @@ void DeleteSelectionCommand::RemoveCompletelySelectedNodes(
+   }
+ 
+   const ShouldAssumeContentIsAlwaysEditable always_editable(
+-      EnclosingTextControl(node));
++      EnclosingTextControl(node) || IsEditable(*node));
+   // Actually remove the nodes in |nodes_to_be_removed|.
+   for (Node* node_to_be_removed : nodes_to_be_removed) {
+     if (!downstream_end_.AnchorNode()->IsDescendantOf(node_to_be_removed)) {
+diff --git a/third_party/blink/renderer/core/editing/commands/insert_paragraph_separator_command.cc b/third_party/blink/renderer/core/editing/commands/insert_paragraph_separator_command.cc
+index cd47d4ca37..15f86fffe8 100644
+--- a/third_party/blink/renderer/core/editing/commands/insert_paragraph_separator_command.cc
++++ b/third_party/blink/renderer/core/editing/commands/insert_paragraph_separator_command.cc
+@@ -658,7 +658,7 @@ void InsertParagraphSeparatorCommand::DoApply(EditingState* editing_state) {
+     }
+ 
+     MoveRemainingSiblingsToNewParent(n, block_to_insert, block_to_insert,
+-                                     editing_state);
++                                     editing_state, ShouldAssumeContentIsAlwaysEditable(true));
+     if (editing_state->IsAborted())
+       return;
+   }
+-- 
+2.38.1
+
