@@ -1,0 +1,396 @@
+From 92ddda85db988a9007ab58f1c209fa6db91a4c29 Mon Sep 17 00:00:00 2001
+From: Mikael Magnusson <mikachu@gmail.com>
+Date: Sat, 20 Jun 2026 02:39:00 +0200
+Subject: [PATCH] Handle compose sequences
+
+---
+ ui/events/ash/caps_lock_event_rewriter.cc     |  1 +
+ .../ash/keyboard_modifier_event_rewriter.cc   |  1 +
+ ui/events/event.cc                            |  2 +-
+ .../dom/dom_keyboard_layout_map_ozone.cc      |  2 +-
+ ui/events/keycodes/scoped_xkb.h               |  9 ++++
+ ui/events/ozone/evdev/keyboard_evdev.cc       | 20 ++++++--
+ .../ozone/layout/keyboard_layout_engine.h     |  2 +
+ .../layout/keyboard_layout_engine_unittest.cc |  2 +-
+ .../layout/no/no_keyboard_layout_engine.cc    |  1 +
+ .../layout/no/no_keyboard_layout_engine.h     |  1 +
+ .../stub/stub_keyboard_layout_engine.cc       |  1 +
+ .../layout/stub/stub_keyboard_layout_engine.h |  1 +
+ .../layout/xkb/xkb_keyboard_layout_engine.cc  | 49 ++++++++++++++++++-
+ .../layout/xkb/xkb_keyboard_layout_engine.h   | 11 +++++
+ .../xkb_keyboard_layout_engine_unittest.cc    |  4 +-
+ .../wayland/host/wayland_event_source.cc      |  1 +
+ 16 files changed, 98 insertions(+), 10 deletions(-)
+
+diff --git a/ui/events/ash/caps_lock_event_rewriter.cc b/ui/events/ash/caps_lock_event_rewriter.cc
+index bdf7480f9a..0b28f33a55 100644
+--- a/ui/events/ash/caps_lock_event_rewriter.cc
++++ b/ui/events/ash/caps_lock_event_rewriter.cc
+@@ -87,6 +87,7 @@ std::unique_ptr<KeyEvent> CapsLockEventRewriter::RewritePressKeyEvent(
+     DomKey dom_key;
+     KeyboardCode key_code;
+     if (!keyboard_layout_engine_->Lookup(remapped_dom_code, key_event.flags(),
++                                         false,
+                                          &dom_key, &key_code)) {
+       LOG(ERROR) << "Failed to look up keyboard layout";
+       return nullptr;
+diff --git a/ui/events/ash/keyboard_modifier_event_rewriter.cc b/ui/events/ash/keyboard_modifier_event_rewriter.cc
+index 54581e7daf..a287c355ae 100644
+--- a/ui/events/ash/keyboard_modifier_event_rewriter.cc
++++ b/ui/events/ash/keyboard_modifier_event_rewriter.cc
+@@ -233,6 +233,7 @@ KeyboardModifierEventRewriter::RemapPressKey(const KeyEvent& event) {
+   KeyboardCode keycode;
+   if (!keyboard_layout_engine_->Lookup(remapped_dom_code,
+                                        RewriteModifierFlags(event.flags()),
++                                       false,
+                                        &dom_key, &keycode)) {
+     LOG(ERROR) << "Failed to look up kayboard layout";
+     return std::nullopt;
+diff --git a/ui/events/event.cc b/ui/events/event.cc
+index 20b5f8b72d..a4fbf46590 100644
+--- a/ui/events/event.cc
++++ b/ui/events/event.cc
+@@ -962,7 +962,7 @@ void KeyEvent::ApplyLayout() const {
+   KeyboardCode dummy_key_code;
+ #if BUILDFLAG(IS_OZONE)
+   if (KeyboardLayoutEngineManager::GetKeyboardLayoutEngine()->Lookup(
+-          code, flags(), &key_, &dummy_key_code)) {
++          code, flags(), false, &key_, &dummy_key_code)) {
+     return;
+   }
+ #endif
+diff --git a/ui/events/keycodes/dom/dom_keyboard_layout_map_ozone.cc b/ui/events/keycodes/dom/dom_keyboard_layout_map_ozone.cc
+index c5f0ab3e47..809150a8be 100644
+--- a/ui/events/keycodes/dom/dom_keyboard_layout_map_ozone.cc
++++ b/ui/events/keycodes/dom/dom_keyboard_layout_map_ozone.cc
+@@ -55,7 +55,7 @@ ui::DomKey DomKeyboardLayoutMapOzone::GetDomKeyFromDomCodeForLayout(
+ 
+   ui::DomKey dom_key;
+   ui::KeyboardCode unused_code;
+-  if (keyboard_layout_engine->Lookup(dom_code, 0, &dom_key, &unused_code))
++  if (keyboard_layout_engine->Lookup(dom_code, 0, false, &dom_key, &unused_code))
+     return dom_key;
+ 
+   return ui::DomKey::NONE;
+diff --git a/ui/events/keycodes/scoped_xkb.h b/ui/events/keycodes/scoped_xkb.h
+index 66ab261359..e35a9fbeed 100644
+--- a/ui/events/keycodes/scoped_xkb.h
++++ b/ui/events/keycodes/scoped_xkb.h
+@@ -6,6 +6,7 @@
+ #define UI_EVENTS_KEYCODES_SCOPED_XKB_H_
+ 
+ #include <xkbcommon/xkbcommon.h>
++#include <xkbcommon/xkbcommon-compose.h>
+ 
+ namespace ui {
+ 
+@@ -23,6 +24,14 @@ struct XkbKeymapDeleter {
+   void operator()(xkb_keymap* keymap) { xkb_keymap_unref(keymap); }
+ };
+ 
++struct XkbComposeTableDeleter {
++  void operator()(xkb_compose_table* t) { xkb_compose_table_unref(t); }
++};
++
++struct XkbComposeStateDeleter {
++  void operator()(xkb_compose_state* s) { xkb_compose_state_unref(s); }
++};
++
+ }  // namespace ui
+ 
+ #endif  // UI_EVENTS_KEYCODES_SCOPED_XKB_H_
+diff --git a/ui/events/ozone/evdev/keyboard_evdev.cc b/ui/events/ozone/evdev/keyboard_evdev.cc
+index be6ad811fe..f7883b4db4 100644
+--- a/ui/events/ozone/evdev/keyboard_evdev.cc
++++ b/ui/events/ozone/evdev/keyboard_evdev.cc
+@@ -193,7 +193,7 @@ void KeyboardEvdev::RefreshModifiers() {
+       continue;
+     DomKey dom_key;
+     KeyboardCode keycode;
+-    if (!keyboard_layout_engine_->Lookup(dom_code, EF_NONE, &dom_key, &keycode))
++    if (!keyboard_layout_engine_->Lookup(dom_code, EF_NONE, false, &dom_key, &keycode))
+       continue;
+     int flag = ModifierDomKeyToEventFlag(dom_key);
+     if (flag == EF_NONE)
+@@ -223,14 +223,28 @@ void KeyboardEvdev::DispatchKey(unsigned int key,
+       return;
+     }
+     int modifier_flags = modifiers_->GetModifierFlags();
+-    if (!keyboard_layout_engine_->Lookup(dom_code, modifier_flags, &dom_key,
+-                                         &key_code)) {
++    if (!keyboard_layout_engine_->Lookup(dom_code, modifier_flags, down,
++                                         &dom_key, &key_code)) {
+       return;
+     }
+     if (!repeat) {
+       int flag = ModifierDomKeyToEventFlag(dom_key);
+       UpdateModifier(flag, down);
+     }
++    std::u16string composed = keyboard_layout_engine_->GetAndClearPendingComposedText();
++    if (!composed.empty()) {
++      // Dispatch each codepoint as a synthetic key event, or use a
++      // TextInsertEvent if one exists. For now, dispatch one KeyEvent
++      // per UTF-16 code unit (handles BMP; surrogate pairs need extra care).
++      for (char16_t ch : composed) {
++        KeyEvent text_event(EventType::kKeyPressed,
++                            VKEY_PROCESSKEY, dom_code,
++                            EF_NONE,
++                            DomKey::FromCharacter(ch), timestamp);
++        callback_.Run(&text_event);
++      }
++      return;
++    }
+   }
+ 
+   KeyEvent event(
+diff --git a/ui/events/ozone/layout/keyboard_layout_engine.h b/ui/events/ozone/layout/keyboard_layout_engine.h
+index 47a2551675..768759d211 100644
+--- a/ui/events/ozone/layout/keyboard_layout_engine.h
++++ b/ui/events/ozone/layout/keyboard_layout_engine.h
+@@ -77,8 +77,10 @@ class COMPONENT_EXPORT(EVENTS_OZONE_LAYOUT) KeyboardLayoutEngine {
+   // parameters.
+   virtual bool Lookup(DomCode dom_code,
+                       int event_flags,
++                      bool is_key_press,
+                       DomKey* dom_key,
+                       KeyboardCode* key_code) const = 0;
++  virtual std::u16string GetAndClearPendingComposedText() { return {}; }  
+ 
+   // Tests may need to wait for the keyboard layout to be fully initialised.
+   // The implementation should run |closure| when it is ready to handle calls to
+diff --git a/ui/events/ozone/layout/keyboard_layout_engine_unittest.cc b/ui/events/ozone/layout/keyboard_layout_engine_unittest.cc
+index 95a73a2705..cdfca10b04 100644
+--- a/ui/events/ozone/layout/keyboard_layout_engine_unittest.cc
++++ b/ui/events/ozone/layout/keyboard_layout_engine_unittest.cc
+@@ -202,7 +202,7 @@ void TestLookup(const char* name, KeyboardLayoutEngine* engine) {
+         KeycodeConverter::DomCodeToCodeString(t.input_dom_code).c_str(),
+         t.input_flags));
+     EXPECT_TRUE(
+-        engine->Lookup(t.input_dom_code, t.input_flags, &dom_key, &keycode));
++        engine->Lookup(t.input_dom_code, t.input_flags, true, &dom_key, &keycode));
+     EXPECT_EQ(t.output_dom_key, dom_key);
+     EXPECT_EQ(t.output_keycode, keycode);
+     KeyEvent key_event(EventType::kKeyPressed, keycode, t.input_dom_code,
+diff --git a/ui/events/ozone/layout/no/no_keyboard_layout_engine.cc b/ui/events/ozone/layout/no/no_keyboard_layout_engine.cc
+index a55fcfeefb..fccd0c1c61 100644
+--- a/ui/events/ozone/layout/no/no_keyboard_layout_engine.cc
++++ b/ui/events/ozone/layout/no/no_keyboard_layout_engine.cc
+@@ -35,6 +35,7 @@ bool NoKeyboardLayoutEngine::UsesAltGr() const {
+ 
+ bool NoKeyboardLayoutEngine::Lookup(DomCode dom_code,
+                                     int flags,
++                                    bool is_key_press,
+                                     DomKey* dom_key,
+                                     KeyboardCode* key_code) const {
+   return false;
+diff --git a/ui/events/ozone/layout/no/no_keyboard_layout_engine.h b/ui/events/ozone/layout/no/no_keyboard_layout_engine.h
+index 266bd5d45e..e93c041267 100644
+--- a/ui/events/ozone/layout/no/no_keyboard_layout_engine.h
++++ b/ui/events/ozone/layout/no/no_keyboard_layout_engine.h
+@@ -28,6 +28,7 @@ class COMPONENT_EXPORT(EVENTS_OZONE_LAYOUT) NoKeyboardLayoutEngine
+   bool UsesAltGr() const override;
+   bool Lookup(DomCode dom_code,
+               int flags,
++              bool is_key_press,
+               DomKey* dom_key,
+               KeyboardCode* key_code) const override;
+   void SetInitCallbackForTest(base::OnceClosure closure) override;
+diff --git a/ui/events/ozone/layout/stub/stub_keyboard_layout_engine.cc b/ui/events/ozone/layout/stub/stub_keyboard_layout_engine.cc
+index 6dc03fb752..3f0f360531 100644
+--- a/ui/events/ozone/layout/stub/stub_keyboard_layout_engine.cc
++++ b/ui/events/ozone/layout/stub/stub_keyboard_layout_engine.cc
+@@ -47,6 +47,7 @@ bool StubKeyboardLayoutEngine::UsesAltGr() const {
+ 
+ bool StubKeyboardLayoutEngine::Lookup(DomCode dom_code,
+                                       int flags,
++                                      bool is_key_press,
+                                       DomKey* out_dom_key,
+                                       KeyboardCode* out_key_code) const {
+   if (!custom_lookup_.empty()) {
+diff --git a/ui/events/ozone/layout/stub/stub_keyboard_layout_engine.h b/ui/events/ozone/layout/stub/stub_keyboard_layout_engine.h
+index c1d99ad30a..976c75d912 100644
+--- a/ui/events/ozone/layout/stub/stub_keyboard_layout_engine.h
++++ b/ui/events/ozone/layout/stub/stub_keyboard_layout_engine.h
+@@ -40,6 +40,7 @@ class COMPONENT_EXPORT(EVENTS_OZONE_LAYOUT) StubKeyboardLayoutEngine
+   bool UsesAltGr() const override;
+   bool Lookup(DomCode dom_code,
+               int flags,
++              bool is_key_press,
+               DomKey* dom_key,
+               KeyboardCode* key_code) const override;
+   void SetInitCallbackForTest(base::OnceClosure closure) override;
+diff --git a/ui/events/ozone/layout/xkb/xkb_keyboard_layout_engine.cc b/ui/events/ozone/layout/xkb/xkb_keyboard_layout_engine.cc
+index 3b5762f66d..5843ba6742 100644
+--- a/ui/events/ozone/layout/xkb/xkb_keyboard_layout_engine.cc
++++ b/ui/events/ozone/layout/xkb/xkb_keyboard_layout_engine.cc
+@@ -5,6 +5,7 @@
+ #include "ui/events/ozone/layout/xkb/xkb_keyboard_layout_engine.h"
+ 
+ #include <stddef.h>
++#include <locale.h>
+ #include <xkbcommon/xkbcommon-names.h>
+ 
+ #include <algorithm>
+@@ -21,6 +22,7 @@
+ #include "base/memory/raw_ptr_exclusion.h"
+ #include "base/notimplemented.h"
+ #include "base/strings/string_util.h"
++#include "base/strings/utf_string_conversions.h"
+ #include "base/task/single_thread_task_runner.h"
+ #include "base/task/task_runner.h"
+ #include "base/task/thread_pool.h"
+@@ -681,6 +683,14 @@ XkbKeyboardLayoutEngine::XkbKeyboardLayoutEngine(
+   xkb_context_.reset(xkb_context_new(XKB_CONTEXT_NO_DEFAULT_INCLUDES));
+   xkb_context_include_path_append(xkb_context_.get(),
+                                   "/usr/share/X11/xkb");
++  const char* locale = setlocale(LC_CTYPE, nullptr);
++  xkb_compose_table_.reset(xkb_compose_table_new_from_locale(
++      xkb_context_.get(), locale ? locale : "C",
++      XKB_COMPOSE_COMPILE_NO_FLAGS));
++  if (xkb_compose_table_) {
++    xkb_compose_state_.reset(xkb_compose_state_new(
++        xkb_compose_table_.get(), XKB_COMPOSE_STATE_NO_FLAGS));
++  }
+ }
+ 
+ XkbKeyboardLayoutEngine::~XkbKeyboardLayoutEngine() {
+@@ -766,6 +776,7 @@ bool XkbKeyboardLayoutEngine::UsesAltGr() const {
+ 
+ bool XkbKeyboardLayoutEngine::Lookup(DomCode dom_code,
+                                      int flags,
++                                     bool is_key_press,
+                                      DomKey* dom_key,
+                                      KeyboardCode* key_code) const {
+   if (dom_code == DomCode::NONE)
+@@ -823,6 +834,38 @@ bool XkbKeyboardLayoutEngine::Lookup(DomCode dom_code,
+   }
+ #endif  // BUILDFLAG(IS_CHROMEOS)
+ 
++  // Feed compose state machine on key press, when no non-shift modifiers
++  // are held (Ctrl+C etc. should not advance compose sequences).
++  const int kNonShiftlikeModifiers =
++      EF_CONTROL_DOWN | EF_ALT_DOWN | EF_COMMAND_DOWN;
++  if (is_key_press && xkb_compose_state_ &&
++      !(flags & kNonShiftlikeModifiers)) {
++    xkb_compose_state_feed(xkb_compose_state_.get(), xkb_keysym);
++    switch (xkb_compose_state_get_status(xkb_compose_state_.get())) {
++      case XKB_COMPOSE_COMPOSING:
++        // Mid-sequence: suppress the key from producing a character.
++        *dom_key = DomKey::UNIDENTIFIED;
++        *key_code = DomCodeToUsLayoutNonLocatedKeyboardCode(dom_code);
++        return true;
++      case XKB_COMPOSE_COMPOSED: {
++        char buf[64];
++        xkb_compose_state_get_utf8(xkb_compose_state_.get(), buf, sizeof(buf));
++        xkb_compose_state_reset(xkb_compose_state_.get());
++        pending_composed_text_ = base::UTF8ToUTF16(std::string_view(buf));
++        // Fall through to normal classification — dom_key/key_code will be
++        // overwritten below, but we return early here:
++        *dom_key = DomKey::UNIDENTIFIED;
++        *key_code = DomCodeToUsLayoutNonLocatedKeyboardCode(dom_code);
++        return true;
++      }
++      case XKB_COMPOSE_CANCELLED:
++        xkb_compose_state_reset(xkb_compose_state_.get());
++        break;
++      case XKB_COMPOSE_NOTHING:
++        break;
++    }
++  }
++
+   // Classify the keysym and convert to DOM and VKEY representations.
+   if (dom_code != DomCode::DIGIT2 || (flags & EF_CONTROL_DOWN) == 0) {
+     // Non-character key. (We only support NUL as ^@ and ^2.)
+@@ -844,8 +887,6 @@ bool XkbKeyboardLayoutEngine::Lookup(DomCode dom_code,
+   // non-printable and a non-shiftlike modifier is down, we preferentially
+   // return a printable key as if the modifier were not down.
+   // https://w3c.github.io/uievents/#keys-guidelines
+-  const int kNonShiftlikeModifiers =
+-      EF_CONTROL_DOWN | EF_ALT_DOWN | EF_COMMAND_DOWN;
+   if ((flags & kNonShiftlikeModifiers) && IsControlCharacter(character)) {
+     int normal_ui_flags = flags & ~kNonShiftlikeModifiers;
+     xkb_mod_mask_t normal_xkb_flags = EventFlagsToXkbFlags(normal_ui_flags);
+@@ -872,6 +913,10 @@ bool XkbKeyboardLayoutEngine::Lookup(DomCode dom_code,
+   return true;
+ }
+ 
++std::u16string XkbKeyboardLayoutEngine::GetAndClearPendingComposedText() {
++  return std::exchange(pending_composed_text_, {});
++}
++
+ void XkbKeyboardLayoutEngine::SetInitCallbackForTest(
+     base::OnceClosure closure) {
+   if (xkb_state_) {
+diff --git a/ui/events/ozone/layout/xkb/xkb_keyboard_layout_engine.h b/ui/events/ozone/layout/xkb/xkb_keyboard_layout_engine.h
+index 68bed23cfe..c1e9213ce3 100644
+--- a/ui/events/ozone/layout/xkb/xkb_keyboard_layout_engine.h
++++ b/ui/events/ozone/layout/xkb/xkb_keyboard_layout_engine.h
+@@ -7,6 +7,7 @@
+ 
+ #include <stdint.h>
+ #include <xkbcommon/xkbcommon.h>
++#include <xkbcommon/xkbcommon-compose.h>
+ 
+ #include <memory>
+ #include <optional>
+@@ -53,6 +54,7 @@ class COMPONENT_EXPORT(EVENTS_OZONE_LAYOUT) XkbKeyboardLayoutEngine
+ 
+   bool Lookup(DomCode dom_code,
+               int flags,
++              bool is_key_press,
+               DomKey* dom_key,
+               KeyboardCode* key_code) const override;
+ 
+@@ -118,6 +120,9 @@ class COMPONENT_EXPORT(EVENTS_OZONE_LAYOUT) XkbKeyboardLayoutEngine
+   // of the keymap), and updates xkb_flag_map_ for the new keymap.
+   virtual void SetKeymap(xkb_keymap* keymap);
+ 
++  std::u16string GetAndClearPendingComposedText() override;
++  mutable std::u16string pending_composed_text_;
++
+   // Maps DomCode to xkb_keycode_t.
+   const raw_ref<const XkbKeyCodeConverter> key_code_converter_;
+ 
+@@ -125,6 +130,12 @@ class COMPONENT_EXPORT(EVENTS_OZONE_LAYOUT) XkbKeyboardLayoutEngine
+   // so we need to trigger its cleanup.
+   std::unique_ptr<xkb_state, XkbStateDeleter> xkb_state_;
+ 
++  // Compose sequence state. Mutable because Lookup() is const.
++  mutable std::unique_ptr<xkb_compose_table, XkbComposeTableDeleter>
++      xkb_compose_table_;
++  mutable std::unique_ptr<xkb_compose_state, XkbComposeStateDeleter>
++      xkb_compose_state_;
++
+  private:
+   struct XkbKeymapEntry {
+     std::string layout_name;
+diff --git a/ui/events/ozone/layout/xkb/xkb_keyboard_layout_engine_unittest.cc b/ui/events/ozone/layout/xkb/xkb_keyboard_layout_engine_unittest.cc
+index b7a262a870..f26af2b63b 100644
+--- a/ui/events/ozone/layout/xkb/xkb_keyboard_layout_engine_unittest.cc
++++ b/ui/events/ozone/layout/xkb/xkb_keyboard_layout_engine_unittest.cc
+@@ -865,8 +865,8 @@ TEST_F(XkbLayoutEngineVkTest, KeyboardCodeForNonPrintable) {
+     layout_engine_->SetEntry(&e.test);
+     DomKey dom_key = DomKey::NONE;
+     KeyboardCode key_code = VKEY_UNKNOWN;
+-    EXPECT_TRUE(layout_engine_->Lookup(e.test.dom_code, e.test.flags, &dom_key,
+-                                       &key_code));
++    EXPECT_TRUE(layout_engine_->Lookup(e.test.dom_code, e.test.flags, true,
++                                       &dom_key, &key_code));
+     EXPECT_EQ(e.key_code, key_code);
+   }
+ }
+diff --git a/ui/ozone/platform/wayland/host/wayland_event_source.cc b/ui/ozone/platform/wayland/host/wayland_event_source.cc
+index 5e70540e72..66f7f1b4c0 100644
+--- a/ui/ozone/platform/wayland/host/wayland_event_source.cc
++++ b/ui/ozone/platform/wayland/host/wayland_event_source.cc
+@@ -252,6 +252,7 @@ uint32_t WaylandEventSource::OnKeyboardKeyEvent(
+   KeyboardCode key_code;
+   auto* layout_engine = KeyboardLayoutEngineManager::GetKeyboardLayoutEngine();
+   if (!layout_engine || !layout_engine->Lookup(dom_code, keyboard_modifiers_,
++                                               type == EventType::kKeyPressed,
+                                                &dom_key, &key_code)) {
+     LOG(ERROR) << "Failed to decode key event.";
+     return POST_DISPATCH_NONE;
+-- 
+2.38.1
+
