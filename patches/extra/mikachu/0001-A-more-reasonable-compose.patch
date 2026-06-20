@@ -1,0 +1,248 @@
+From 5c6cf15263162ebc4539d097b4b1b6532098e935 Mon Sep 17 00:00:00 2001
+From: Mikael Magnusson <mikachu@gmail.com>
+Date: Sun, 21 Jun 2026 00:50:09 +0200
+Subject: [PATCH] A more reasonable compose
+
+---
+ ui/base/ime/linux/BUILD.gn                  |  13 +++
+ ui/base/ime/linux/input_method_auralinux.cc | 106 ++++++++++++++++++++
+ ui/base/ime/linux/input_method_auralinux.h  |   7 ++
+ ui/events/keycodes/scoped_xkb.h             |   9 ++
+ 4 files changed, 135 insertions(+)
+
+diff --git a/ui/base/ime/linux/BUILD.gn b/ui/base/ime/linux/BUILD.gn
+index aa6e9f2437..8ab7b24d91 100644
+--- a/ui/base/ime/linux/BUILD.gn
++++ b/ui/base/ime/linux/BUILD.gn
+@@ -3,9 +3,17 @@
+ # found in the LICENSE file.
+ 
+ import("//build/config/linux/pangocairo/pangocairo.gni")
++import("//build/config/linux/pkg_config.gni")
++import("//ui/base/ui_features.gni")
+ 
+ assert(is_linux)
+ 
++if (use_xkbcommon) {
++  pkg_config("xkbcommon") {
++    packages = [ "xkbcommon" ]
++  }
++}
++
+ component("linux") {
+   output_name = "ui_base_ime_linux"
+   sources = [
+@@ -36,4 +44,9 @@ component("linux") {
+     "//ui/base",
+     "//ui/linux:linux_ui",
+   ]
++
++  if (use_xkbcommon) {
++    configs += [ ":xkbcommon" ]
++    deps += [ "//ui/events/keycodes:xkb" ]
++  }  
+ }
+diff --git a/ui/base/ime/linux/input_method_auralinux.cc b/ui/base/ime/linux/input_method_auralinux.cc
+index 64fabc7107..b734974e32 100644
+--- a/ui/base/ime/linux/input_method_auralinux.cc
++++ b/ui/base/ime/linux/input_method_auralinux.cc
+@@ -4,6 +4,8 @@
+ 
+ #include "ui/base/ime/linux/input_method_auralinux.h"
+ 
++#include <locale.h>
++
+ #include "base/auto_reset.h"
+ #include "base/environment.h"
+ #include "base/functional/bind.h"
+@@ -52,10 +54,108 @@ InputMethodAuraLinux::InputMethodAuraLinux(
+       is_sync_mode_(false),
+       composition_changed_(false) {
+   context_ = CreateLinuxInputMethodContext(this);
++
++  xkb_context* ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
++  if (ctx) {
++    const char* locale = setlocale(LC_CTYPE, nullptr);
++    if (!locale)
++      locale = "C";
++    xkb_compose_table_.reset(xkb_compose_table_new_from_locale(
++        ctx, locale, XKB_COMPOSE_COMPILE_NO_FLAGS));
++    if (xkb_compose_table_) {
++      xkb_compose_state_.reset(xkb_compose_state_new(
++          xkb_compose_table_.get(), XKB_COMPOSE_STATE_NO_FLAGS));
++    }
++    xkb_context_unref(ctx);
++  }
+ }
+ 
+ InputMethodAuraLinux::~InputMethodAuraLinux() = default;
+ 
++// Maps DomKey dead-key combining characters to XKB dead-key keysyms.
++// xkb_utf32_to_keysym() returns 0x01000000|cp for combining characters,
++// but compose tables use XKB_KEY_dead_* keysyms.
++static const struct {
++  uint32_t combining;
++  xkb_keysym_t dead_keysym;
++} kDeadKeyMap[] = {
++    {0x0300, XKB_KEY_dead_grave},
++    {0x0301, XKB_KEY_dead_acute},
++    {0x0302, XKB_KEY_dead_circumflex},
++    {0x0303, XKB_KEY_dead_tilde},
++    {0x0304, XKB_KEY_dead_macron},
++    {0x0306, XKB_KEY_dead_breve},
++    {0x0307, XKB_KEY_dead_abovedot},
++    {0x0308, XKB_KEY_dead_diaeresis},
++    {0x030A, XKB_KEY_dead_abovering},
++    {0x030B, XKB_KEY_dead_doubleacute},
++    {0x030C, XKB_KEY_dead_caron},
++    {0x030F, XKB_KEY_dead_doublegrave},
++    {0x0309, XKB_KEY_dead_hook},
++    {0x0311, XKB_KEY_dead_invertedbreve},
++    {0x0313, XKB_KEY_dead_abovecomma},
++    {0x0314, XKB_KEY_dead_abovereversedcomma},
++    {0x031B, XKB_KEY_dead_horn},
++    {0x0323, XKB_KEY_dead_belowdot},
++    {0x0324, XKB_KEY_dead_belowdiaeresis},
++    {0x0325, XKB_KEY_dead_belowring},
++    {0x0326, XKB_KEY_dead_belowcomma},
++    {0x0327, XKB_KEY_dead_cedilla},
++    {0x0328, XKB_KEY_dead_ogonek},
++    {0x032D, XKB_KEY_dead_belowcircumflex},
++    {0x032E, XKB_KEY_dead_belowbreve},
++    {0x0330, XKB_KEY_dead_belowtilde},
++    {0x0331, XKB_KEY_dead_belowmacron},
++    {0x0338, XKB_KEY_dead_stroke},
++    {0x0345, XKB_KEY_dead_iota},
++    {0x3099, XKB_KEY_dead_voiced_sound},
++    {0x309A, XKB_KEY_dead_semivoiced_sound},
++};
++
++bool InputMethodAuraLinux::MaybeFeedComposeSequence(
++    const ui::KeyEvent& event) {
++  if (!xkb_compose_state_)
++    return false;
++
++  xkb_keysym_t keysym = XKB_KEY_NoSymbol;
++  const DomKey dom_key = event.GetDomKey();
++  if (dom_key.IsComposeKey()) {
++    keysym = XKB_KEY_Multi_key;
++  } else if (dom_key.IsCharacter()) {
++    keysym = xkb_utf32_to_keysym(dom_key.ToCharacter());
++  } else if (dom_key.IsDeadKey()) {
++    const uint32_t combining = dom_key.ToDeadKeyCombiningCharacter();
++    for (const auto& entry : kDeadKeyMap) {
++      if (entry.combining == combining) {
++        keysym = entry.dead_keysym;
++        break;
++      }
++    }
++  }
++
++  if (keysym == XKB_KEY_NoSymbol)
++    return false;
++
++  xkb_compose_state_feed(xkb_compose_state_.get(), keysym);
++  switch (xkb_compose_state_get_status(xkb_compose_state_.get())) {
++    case XKB_COMPOSE_COMPOSING:
++      return true;
++    case XKB_COMPOSE_COMPOSED: {
++      char buf[64];
++      xkb_compose_state_get_utf8(xkb_compose_state_.get(), buf, sizeof(buf));
++      xkb_compose_state_reset(xkb_compose_state_.get());
++      OnCommit(base::UTF8ToUTF16(std::string_view(buf)));
++      return true;
++    }
++    case XKB_COMPOSE_CANCELLED:
++      xkb_compose_state_reset(xkb_compose_state_.get());
++      return false;
++    case XKB_COMPOSE_NOTHING:
++      return false;
++  }
++  return false;
++}
++
+ LinuxInputMethodContext* InputMethodAuraLinux::GetContextForTesting() {
+   return context_.get();
+ }
+@@ -141,6 +241,9 @@ ui::EventDispatchDetails InputMethodAuraLinux::DispatchKeyEvent(
+     result_text_ = std::nullopt;
+     base::AutoReset<bool> flipper(&is_sync_mode_, true);
+     filtered = context_->DispatchKeyEvent(*event);
++
++    if (!filtered && event->type() == EventType::kKeyPressed)
++      filtered = MaybeFeedComposeSequence(*event);
+   }
+ 
+   // There are four cases here. They are a pair of two conditions:
+@@ -434,6 +537,9 @@ void InputMethodAuraLinux::ResetContext() {
+ 
+   context_->Reset();
+ 
++  if (xkb_compose_state_)
++    xkb_compose_state_reset(xkb_compose_state_.get());  
++
+   composition_ = CompositionText();
+   result_text_ = std::nullopt;
+   is_sync_mode_ = false;
+diff --git a/ui/base/ime/linux/input_method_auralinux.h b/ui/base/ime/linux/input_method_auralinux.h
+index 1418802862..4013fb02e6 100644
+--- a/ui/base/ime/linux/input_method_auralinux.h
++++ b/ui/base/ime/linux/input_method_auralinux.h
+@@ -12,6 +12,7 @@
+ #include "ui/base/ime/composition_text.h"
+ #include "ui/base/ime/input_method_base.h"
+ #include "ui/base/ime/linux/linux_input_method_context.h"
++#include "ui/events/keycodes/scoped_xkb.h"
+ #include "ui/gfx/native_ui_types.h"
+ 
+ namespace ui {
+@@ -88,6 +89,7 @@ class COMPONENT_EXPORT(UI_BASE_IME_LINUX) InputMethodAuraLinux
+   void UpdateContextFocusState();
+   void ResetContext();
+   bool IgnoringNonKeyInput() const;
++  bool MaybeFeedComposeSequence(const ui::KeyEvent& event);
+ 
+   const gfx::AcceleratedWidget widget_;
+ 
+@@ -122,6 +124,11 @@ class COMPONENT_EXPORT(UI_BASE_IME_LINUX) InputMethodAuraLinux
+   // the future.
+   base::TimeTicks suppress_non_key_input_until_ = base::TimeTicks::UnixEpoch();
+ 
++  // XKB compose state for handling XCompose sequences when the platform IME
++  // context does not handle them (e.g. non-GTK Ozone/X11).
++  std::unique_ptr<xkb_compose_table, XkbComposeTableDeleter> xkb_compose_table_;
++  std::unique_ptr<xkb_compose_state, XkbComposeStateDeleter> xkb_compose_state_;
++
+   // Used for making callbacks.
+   base::WeakPtrFactory<InputMethodAuraLinux> weak_ptr_factory_{this};
+ };
+diff --git a/ui/events/keycodes/scoped_xkb.h b/ui/events/keycodes/scoped_xkb.h
+index 66ab261359..e35a9fbeed 100644
+--- a/ui/events/keycodes/scoped_xkb.h
++++ b/ui/events/keycodes/scoped_xkb.h
+@@ -6,6 +6,7 @@
+ #define UI_EVENTS_KEYCODES_SCOPED_XKB_H_
+ 
+ #include <xkbcommon/xkbcommon.h>
++#include <xkbcommon/xkbcommon-compose.h>
+ 
+ namespace ui {
+ 
+@@ -23,6 +24,14 @@ struct XkbKeymapDeleter {
+   void operator()(xkb_keymap* keymap) { xkb_keymap_unref(keymap); }
+ };
+ 
++struct XkbComposeTableDeleter {
++  void operator()(xkb_compose_table* t) { xkb_compose_table_unref(t); }
++};
++
++struct XkbComposeStateDeleter {
++  void operator()(xkb_compose_state* s) { xkb_compose_state_unref(s); }
++};
++
+ }  // namespace ui
+ 
+ #endif  // UI_EVENTS_KEYCODES_SCOPED_XKB_H_
+-- 
+2.38.1
+
