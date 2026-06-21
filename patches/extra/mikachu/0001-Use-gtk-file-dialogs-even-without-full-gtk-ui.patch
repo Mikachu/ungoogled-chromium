@@ -1,0 +1,208 @@
+From 1d96afd223e1000aaa9e3246384d888754b6584b Mon Sep 17 00:00:00 2001
+From: Mikael Magnusson <mikachu@gmail.com>
+Date: Sun, 21 Jun 2026 16:17:35 +0200
+Subject: [PATCH] Use gtk file dialogs even without full gtk ui
+
+---
+ ui/gtk/gtk_ui_factory.cc                      | 15 ++++++++++
+ ui/gtk/gtk_ui_factory.h                       |  9 ++++++
+ ui/linux/linux_ui_factory.cc                  |  4 +++
+ ui/shell_dialogs/BUILD.gn                     |  1 +
+ .../select_file_dialog_linux_portal.cc        |  4 +++
+ ui/shell_dialogs/shell_dialog_linux.cc        | 21 ++++++++++++++
+ ui/shell_dialogs/shell_dialog_linux.h         | 29 +++++++++++++++++++
+ 7 files changed, 83 insertions(+)
+ create mode 100644 ui/shell_dialogs/shell_dialog_linux.h
+
+diff --git a/ui/gtk/gtk_ui_factory.cc b/ui/gtk/gtk_ui_factory.cc
+index 7729117c26..b4f0057ee4 100644
+--- a/ui/gtk/gtk_ui_factory.cc
++++ b/ui/gtk/gtk_ui_factory.cc
+@@ -5,7 +5,22 @@
+ #include "ui/gtk/gtk_ui_factory.h"
+ 
+ #include "ui/gtk/gtk_ui.h"
++#include "ui/gtk/gtk_compat.h"
++#include "ui/gtk/x/gtk_ui_platform_x11.h"
++#include "ui/gtk/select_file_dialog_linux_gtk.h"
+ 
+ std::unique_ptr<ui::LinuxUiAndTheme> BuildGtkUi() {
+   return std::make_unique<gtk::GtkUi>();
+ }
++
++ui::SelectFileDialog* BuildGtkSelectFileDialog(
++    ui::SelectFileDialog::Listener* listener,
++    std::unique_ptr<ui::SelectFilePolicy> policy) {
++  if (!gtk::LoadGtk(ui::LinuxUiBackend::kX11))
++    return nullptr;
++  static gtk::GtkUiPlatformX11* platform = new gtk::GtkUiPlatformX11();
++  if (!gtk::GtkInitCheck(nullptr, nullptr))
++    return nullptr;
++  platform->OnInitialized();
++  return new gtk::SelectFileDialogLinuxGtk(listener, std::move(policy), platform);
++}
+diff --git a/ui/gtk/gtk_ui_factory.h b/ui/gtk/gtk_ui_factory.h
+index 07db2ac46b..9f69d71140 100644
+--- a/ui/gtk/gtk_ui_factory.h
++++ b/ui/gtk/gtk_ui_factory.h
+@@ -8,6 +8,8 @@
+ #include <memory>
+ 
+ #include "base/component_export.h"
++#include "ui/shell_dialogs/select_file_dialog.h"
++#include "ui/shell_dialogs/select_file_policy.h"
+ 
+ namespace ui {
+ class LinuxUiAndTheme;
+@@ -18,4 +20,11 @@ class LinuxUiAndTheme;
+ COMPONENT_EXPORT(GTK)
+ std::unique_ptr<ui::LinuxUiAndTheme> BuildGtkUi();
+ 
++// Creates a GTK file chooser dialog without requiring full GtkUi
++// initialization. Returns nullptr if GTK cannot be loaded or initialized.
++COMPONENT_EXPORT(GTK)
++ui::SelectFileDialog* BuildGtkSelectFileDialog(
++    ui::SelectFileDialog::Listener* listener,
++    std::unique_ptr<ui::SelectFilePolicy> policy);
++
+ #endif  // UI_GTK_GTK_UI_FACTORY_H_
+diff --git a/ui/linux/linux_ui_factory.cc b/ui/linux/linux_ui_factory.cc
+index 714cb4ec5c..02ffc020d5 100644
+--- a/ui/linux/linux_ui_factory.cc
++++ b/ui/linux/linux_ui_factory.cc
+@@ -25,6 +25,7 @@
+ 
+ #if BUILDFLAG(USE_GTK)
+ #include "ui/gtk/gtk_ui_factory.h"
++#include "ui/shell_dialogs/shell_dialog_linux.h"
+ #endif
+ #if BUILDFLAG(USE_QT)
+ #include "ui/qt/qt_ui.h"
+@@ -118,6 +119,9 @@ LinuxUiAndTheme* GetFallbackUi() {
+ }
+ 
+ LinuxUiAndTheme* GetDefaultLinuxUiAndTheme() {
++#if BUILDFLAG(USE_GTK)
++  ui::SetGtkSelectFileDialogFactory(&BuildGtkSelectFileDialog);
++#endif
+   auto* cmd_line = base::CommandLine::ForCurrentProcess();
+   std::string ui_toolkit = base::ToLowerASCII(
+       cmd_line->GetSwitchValueASCII(switches::kUiToolkitFlag));
+diff --git a/ui/shell_dialogs/BUILD.gn b/ui/shell_dialogs/BUILD.gn
+index 819b8e5153..4535b4647c 100644
+--- a/ui/shell_dialogs/BUILD.gn
++++ b/ui/shell_dialogs/BUILD.gn
+@@ -57,6 +57,7 @@ component("shell_dialogs") {
+       "select_file_dialog_linux.cc",
+       "select_file_dialog_linux.h",
+       "shell_dialog_linux.cc",
++      "shell_dialog_linux.h",
+     ]
+     deps += [ "//ui/linux:linux_ui" ]
+     if (use_dbus) {
+diff --git a/ui/shell_dialogs/select_file_dialog_linux_portal.cc b/ui/shell_dialogs/select_file_dialog_linux_portal.cc
+index cf60f909cb..b3e3e461d0 100644
+--- a/ui/shell_dialogs/select_file_dialog_linux_portal.cc
++++ b/ui/shell_dialogs/select_file_dialog_linux_portal.cc
+@@ -31,6 +31,7 @@
+ #include "ui/linux/linux_ui.h"
+ #include "ui/linux/linux_ui_delegate.h"
+ #include "ui/shell_dialogs/selected_file_info.h"
++#include "ui/shell_dialogs/shell_dialog_linux.h"
+ #include "ui/strings/grit/ui_strings.h"
+ #include "ui/views/widget/desktop_aura/desktop_window_tree_host_linux.h"
+ #include "url/gurl.h"
+@@ -167,6 +168,9 @@ void SelectFileDialogLinuxPortal::OnPortalAvailable(
+     if (auto* linux_ui = ui::LinuxUi::instance()) {
+       fallback_dialog_ = linux_ui->CreateSelectFileDialog(listener_, nullptr);
+     }
++    if (!fallback_dialog_) {
++      fallback_dialog_ = ui::CreateGtkSelectFileDialog(listener_, nullptr);
++    }
+     if (fallback_dialog_) {
+       fallback_dialog_->SelectFile(
+           type(), title, default_path, &file_types(), file_type_index(),
+diff --git a/ui/shell_dialogs/shell_dialog_linux.cc b/ui/shell_dialogs/shell_dialog_linux.cc
+index 154651427f..7cc2240f68 100644
+--- a/ui/shell_dialogs/shell_dialog_linux.cc
++++ b/ui/shell_dialogs/shell_dialog_linux.cc
+@@ -7,6 +7,7 @@
+ #include "ui/linux/linux_ui.h"
+ #include "ui/shell_dialogs/select_file_dialog_linux.h"
+ #include "ui/shell_dialogs/select_file_policy.h"
++#include "ui/shell_dialogs/shell_dialog_linux.h"
+ 
+ #if BUILDFLAG(USE_DBUS)
+ #include "ui/shell_dialogs/select_file_dialog_linux_portal.h"
+@@ -14,6 +15,24 @@
+ 
+ namespace ui {
+ 
++namespace {
++
++GtkSelectFileDialogFactory g_gtk_factory = nullptr;
++
++}
++
++void SetGtkSelectFileDialogFactory(GtkSelectFileDialogFactory factory) {
++  g_gtk_factory = factory;
++}
++
++SelectFileDialog* CreateGtkSelectFileDialog(
++    SelectFileDialog::Listener* listener,
++    std::unique_ptr<SelectFilePolicy> policy) {
++  if (g_gtk_factory)
++    return g_gtk_factory(listener, std::move(policy));
++  return nullptr;
++}
++
+ SelectFileDialog* CreateSelectFileDialog(
+     SelectFileDialog::Listener* listener,
+     std::unique_ptr<SelectFilePolicy> policy) {
+@@ -24,6 +43,8 @@ SelectFileDialog* CreateSelectFileDialog(
+   if (linux_ui) {
+     return linux_ui->CreateSelectFileDialog(listener, std::move(policy));
+   }
++  if (g_gtk_factory)
++    return g_gtk_factory(listener, std::move(policy));
+   return nullptr;
+ #endif
+ }
+diff --git a/ui/shell_dialogs/shell_dialog_linux.h b/ui/shell_dialogs/shell_dialog_linux.h
+new file mode 100644
+index 0000000000..b8a671ae78
+--- /dev/null
++++ b/ui/shell_dialogs/shell_dialog_linux.h
+@@ -0,0 +1,29 @@
++// Copyright 2024 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef UI_SHELL_DIALOGS_SHELL_DIALOG_LINUX_H_
++#define UI_SHELL_DIALOGS_SHELL_DIALOG_LINUX_H_
++
++#include <memory>
++
++#include "ui/shell_dialogs/select_file_dialog.h"
++#include "ui/shell_dialogs/select_file_policy.h"
++#include "ui/shell_dialogs/shell_dialogs_export.h"
++
++namespace ui {
++
++using GtkSelectFileDialogFactory =
++    SelectFileDialog* (*)(SelectFileDialog::Listener*,
++                          std::unique_ptr<SelectFilePolicy>);
++
++SHELL_DIALOGS_EXPORT void SetGtkSelectFileDialogFactory(
++    GtkSelectFileDialogFactory factory);
++
++SHELL_DIALOGS_EXPORT SelectFileDialog* CreateGtkSelectFileDialog(
++    SelectFileDialog::Listener* listener,
++    std::unique_ptr<SelectFilePolicy> policy);
++
++}  // namespace ui
++
++#endif  // UI_SHELL_DIALOGS_SHELL_DIALOG_LINUX_H_
+-- 
+2.38.1
+
