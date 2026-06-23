@@ -1,0 +1,240 @@
+From d9d40999fa12ad956b8b113d2f5640c72deef454 Mon Sep 17 00:00:00 2001
+From: Mikael Magnusson <mikachu@gmail.com>
+Date: Tue, 23 Jun 2026 09:31:09 +0200
+Subject: [PATCH] potentially handle ctrl-u correctly
+
+---
+ chrome/browser/ui/accelerator_table.cc        |  8 +++---
+ .../render_widget_host_view_aura.cc           | 25 ++++++++++++++++---
+ .../editing/commands/editing_command_type.h   |  2 ++
+ .../core/editing/commands/editor_command.cc   | 15 +++++++++++
+ .../editing/commands/editor_command_names.h   |  1 +
+ .../ime/linux/text_edit_command_auralinux.cc  |  2 ++
+ ui/base/ime/mojom/text_edit_commands.mojom    |  1 +
+ ui/base/ime/text_edit_commands.inc            |  1 +
+ ui/views/controls/textfield/textfield.cc      | 17 +++++++++++++
+ 9 files changed, 65 insertions(+), 7 deletions(-)
+
+diff --git a/chrome/browser/ui/accelerator_table.cc b/chrome/browser/ui/accelerator_table.cc
+index 51837acdf5..c602f35bf8 100644
+--- a/chrome/browser/ui/accelerator_table.cc
++++ b/chrome/browser/ui/accelerator_table.cc
+@@ -278,7 +278,8 @@ const AcceleratorMapping kDevToolsAcceleratorMap[] = {
+      IDC_DEV_TOOLS_CONSOLE},
+     {ui::VKEY_C, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN,
+      IDC_DEV_TOOLS_INSPECT},
+-    {ui::VKEY_U, ui::EF_CONTROL_DOWN, IDC_VIEW_SOURCE},
++    //collides with deletewholeline binding
++    //{ui::VKEY_U, ui::EF_CONTROL_DOWN, IDC_VIEW_SOURCE},
+ #endif  // !BUILDFLAG(IS_MAC)
+ };
+ 
+@@ -317,8 +318,9 @@ std::vector<AcceleratorMapping> GetAcceleratorList() {
+                          std::end(kDevToolsAcceleratorMap));
+ 
+ #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_LINUX)
+-    accelerators->emplace_back(AcceleratorMapping(
+-        {ui::VKEY_N, ui::EF_SHIFT_DOWN | ui::EF_ALT_DOWN, IDC_NEW_SPLIT_TAB}));
++    //this just crashes the browser
++    //accelerators->emplace_back(AcceleratorMapping(
++    //    {ui::VKEY_N, ui::EF_SHIFT_DOWN | ui::EF_ALT_DOWN, IDC_NEW_SPLIT_TAB}));
+ #elif BUILDFLAG(IS_CHROMEOS)
+     accelerators->emplace_back(
+         AcceleratorMapping({ui::VKEY_N, ui::EF_CONTROL_DOWN | ui::EF_ALT_DOWN,
+diff --git a/content/browser/renderer_host/render_widget_host_view_aura.cc b/content/browser/renderer_host/render_widget_host_view_aura.cc
+index 1dddae6e47..725effc4ee 100644
+--- a/content/browser/renderer_host/render_widget_host_view_aura.cc
++++ b/content/browser/renderer_host/render_widget_host_view_aura.cc
+@@ -3329,10 +3329,27 @@ void RenderWidgetHostViewAura::ForwardKeyboardEventWithLatencyInfo(
+     return;
+ 
+ #if BUILDFLAG(IS_LINUX)
+-  auto* linux_ui = ui::LinuxUi::instance();
+-  if (!event.skip_if_unhandled && linux_ui && event.os_event) {
+-    const auto command = linux_ui->GetTextEditCommandForEvent(
+-        *event.os_event, GetTextInputFlags());
++  if (!event.skip_if_unhandled) {
++    ui::TextEditCommand command = ui::TextEditCommand::INVALID_COMMAND;
++
++    auto* linux_ui = ui::LinuxUi::instance();
++    if (linux_ui && event.os_event) {
++      command = linux_ui->GetTextEditCommandForEvent(
++          *event.os_event, GetTextInputFlags());
++    }
++
++    // Hardcoded fallback: Ctrl+U deletes the whole line.
++    // This applies even when GTK is not initialized.
++    if (command == ui::TextEditCommand::INVALID_COMMAND &&
++        (event.GetType() == blink::WebInputEvent::Type::kRawKeyDown ||
++         event.GetType() == blink::WebInputEvent::Type::kKeyDown) &&
++        event.windows_key_code == ui::VKEY_U &&
++        (event.GetModifiers() & blink::WebInputEvent::kControlKey) &&
++        !(event.GetModifiers() & blink::WebInputEvent::kShiftKey) &&
++        !(event.GetModifiers() & blink::WebInputEvent::kAltKey)) {
++      command = ui::TextEditCommand::DELETE_WHOLE_LINE;
++    }
++
+     if (command != ui::TextEditCommand::INVALID_COMMAND) {
+       // Transform from ui/ types to content/ types.
+       std::vector<blink::mojom::EditCommandPtr> commands;
+diff --git a/third_party/blink/renderer/core/editing/commands/editing_command_type.h b/third_party/blink/renderer/core/editing/commands/editing_command_type.h
+index a65184fcb5..2695fa748e 100644
+--- a/third_party/blink/renderer/core/editing/commands/editing_command_type.h
++++ b/third_party/blink/renderer/core/editing/commands/editing_command_type.h
+@@ -158,6 +158,8 @@ enum class EditingCommandType {
+   // tenor.com).
+   kPasteFromImageURL = 140,
+ 
++  kDeleteWholeLine = 141,
++
+   // Add new commands immediately above this line.
+   kNumberOfCommandTypes,
+ 
+diff --git a/third_party/blink/renderer/core/editing/commands/editor_command.cc b/third_party/blink/renderer/core/editing/commands/editor_command.cc
+index 5681fc4eec..b58a523e9e 100644
+--- a/third_party/blink/renderer/core/editing/commands/editor_command.cc
++++ b/third_party/blink/renderer/core/editing/commands/editor_command.cc
+@@ -193,6 +193,8 @@ InputEvent::InputType InputTypeFromCommandType(EditingCommandType command_type,
+     // TODO(editing-dev): Find appreciate InputType for following commands.
+     case CommandType::kDeleteToMark:
+       return InputType::kNone;
++    case CommandType::kDeleteWholeLine:
++      return InputType::kNone;
+ 
+     // Command.
+     case CommandType::kUndo:
+@@ -637,6 +639,16 @@ static bool ExecuteDeleteToMark(LocalFrame& frame,
+   return true;
+ }
+ 
++static bool ExecuteDeleteWholeLine(LocalFrame& frame,
++                                   Event*,
++                                   EditorCommandSource,
++                                   const String&) {
++  // Select the entire current line, then delete it (adding to kill ring).
++  ExpandSelectionToGranularity(frame, TextGranularity::kLine);
++  PerformDelete(frame);
++  return true;
++}
++
+ static bool ExecuteDeleteWordBackward(LocalFrame& frame,
+                                       Event*,
+                                       EditorCommandSource,
+@@ -1993,6 +2005,9 @@ static const EditorInternalCommand* InternalCommand(
+        ClipboardCommands::ExecutePasteFromImageURL,
+        SupportedFromMenuOrKeyBinding, EnabledInEditableText, StateNone,
+        ValueStateOrNull, kNotTextInsertion, CanNotExecuteWhenDisabled},
++      {EditingCommandType::kDeleteWholeLine, ExecuteDeleteWholeLine,
++       SupportedFromMenuOrKeyBinding, EnabledInEditableText, StateNone,
++       ValueStateOrNull, kNotTextInsertion, CanNotExecuteWhenDisabled},
+   });
+   // Handles all commands except EditingCommandType::Invalid.
+   static_assert(
+diff --git a/third_party/blink/renderer/core/editing/commands/editor_command_names.h b/third_party/blink/renderer/core/editing/commands/editor_command_names.h
+index 4accf04ffb..8e3078a8c2 100644
+--- a/third_party/blink/renderer/core/editing/commands/editor_command_names.h
++++ b/third_party/blink/renderer/core/editing/commands/editor_command_names.h
+@@ -30,6 +30,7 @@ namespace blink {
+   V(DeleteToEndOfLine)                            \
+   V(DeleteToEndOfParagraph)                       \
+   V(DeleteToMark)                                 \
++  V(DeleteWholeLine)                              \
+   V(DeleteWordBackward)                           \
+   V(DeleteWordForward)                            \
+   V(FindString)                                   \
+diff --git a/ui/base/ime/linux/text_edit_command_auralinux.cc b/ui/base/ime/linux/text_edit_command_auralinux.cc
+index d5cd0d6dc9..0c56b788ea 100644
+--- a/ui/base/ime/linux/text_edit_command_auralinux.cc
++++ b/ui/base/ime/linux/text_edit_command_auralinux.cc
+@@ -17,6 +17,8 @@ std::string TextEditCommandToString(ui::TextEditCommand command) {
+       return "DeleteBackward";
+     case TextEditCommand::DELETE_FORWARD:
+       return "DeleteForward";
++    case TextEditCommand::DELETE_WHOLE_LINE:
++      return "DeleteWholeLine";
+     case TextEditCommand::DELETE_TO_BEGINNING_OF_LINE:
+       return "DeleteToBeginningOfLine";
+     case TextEditCommand::DELETE_TO_BEGINNING_OF_PARAGRAPH:
+diff --git a/ui/base/ime/mojom/text_edit_commands.mojom b/ui/base/ime/mojom/text_edit_commands.mojom
+index 6ec4a2009b..f0e5c8533a 100644
+--- a/ui/base/ime/mojom/text_edit_commands.mojom
++++ b/ui/base/ime/mojom/text_edit_commands.mojom
+@@ -9,6 +9,7 @@ module ui.mojom;
+ enum TextEditCommand {
+   kDeleteBackward,
+   kDeleteForward,
++  kDeleteWholeLine,
+   kDeleteToBeginningOfLine,
+   kDeleteToBeginningOfParagraph,
+   kDeleteToEndOfLine,
+diff --git a/ui/base/ime/text_edit_commands.inc b/ui/base/ime/text_edit_commands.inc
+index 2e05820feb..d2712856ba 100644
+--- a/ui/base/ime/text_edit_commands.inc
++++ b/ui/base/ime/text_edit_commands.inc
+@@ -10,6 +10,7 @@
+ 
+ TEXT_EDIT_COMMAND(DELETE_BACKWARD, kDeleteBackward)
+ TEXT_EDIT_COMMAND(DELETE_FORWARD, kDeleteForward)
++TEXT_EDIT_COMMAND(DELETE_WHOLE_LINE, kDeleteWholeLine)
+ TEXT_EDIT_COMMAND(DELETE_TO_BEGINNING_OF_LINE, kDeleteToBeginningOfLine)
+ TEXT_EDIT_COMMAND(DELETE_TO_BEGINNING_OF_PARAGRAPH, \
+   kDeleteToBeginningOfParagraph)
+diff --git a/ui/views/controls/textfield/textfield.cc b/ui/views/controls/textfield/textfield.cc
+index e672ba29b4..1a7a4064a5 100644
+--- a/ui/views/controls/textfield/textfield.cc
++++ b/ui/views/controls/textfield/textfield.cc
+@@ -1019,6 +1019,11 @@ bool Textfield::SkipDefaultKeyEventProcessing(const ui::KeyEvent& event) {
+       return true;
+     }
+   }
++  // Also skip accelerators for hardcoded Linux text edit commands.
++  auto cmd = GetCommandForKeyEvent(event);
++  if (cmd == ui::TextEditCommand::DELETE_WHOLE_LINE && IsTextEditCommandEnabled(cmd)) {
++    return true;
++  }
+ #endif
+ 
+   // Skip backspace accelerator handling; editable textfields handle this key.
+@@ -2019,6 +2024,7 @@ bool Textfield::IsTextEditCommandEnabled(ui::TextEditCommand command) const {
+   switch (command) {
+     case ui::TextEditCommand::DELETE_BACKWARD:
+     case ui::TextEditCommand::DELETE_FORWARD:
++    case ui::TextEditCommand::DELETE_WHOLE_LINE:
+     case ui::TextEditCommand::DELETE_TO_BEGINNING_OF_LINE:
+     case ui::TextEditCommand::DELETE_TO_BEGINNING_OF_PARAGRAPH:
+     case ui::TextEditCommand::DELETE_TO_END_OF_LINE:
+@@ -2282,6 +2288,9 @@ void Textfield::DoExecuteTextEditCommand(
+         command = ui::TextEditCommand::DELETE_FORWARD;
+       }
+       break;
++    case ui::TextEditCommand::DELETE_WHOLE_LINE:
++      add_to_kill_buffer = text_input_type_ != ui::TEXT_INPUT_TYPE_PASSWORD;
++      break;
+ 
+     // Handle async PASTE separately to avoid splitting On[Before]UserAction
+     // across async boundaries.
+@@ -2305,6 +2314,11 @@ void Textfield::DoExecuteTextEditCommand(
+     case ui::TextEditCommand::DELETE_FORWARD:
+       changed = cursor_changed = model_->Delete(add_to_kill_buffer);
+       break;
++    case ui::TextEditCommand::DELETE_WHOLE_LINE:
++      model_->MoveCursor(gfx::LINE_BREAK, end, gfx::SELECTION_NONE);
++      model_->MoveCursor(gfx::LINE_BREAK, begin, gfx::SELECTION_RETAIN);
++      changed = cursor_changed = model_->Backspace(add_to_kill_buffer);
++      break;
+     case ui::TextEditCommand::DELETE_TO_BEGINNING_OF_LINE:
+       model_->MoveCursor(gfx::LINE_BREAK, begin, gfx::SELECTION_RETAIN);
+       changed = cursor_changed = model_->Backspace(add_to_kill_buffer);
+@@ -2576,6 +2590,9 @@ ui::TextEditCommand Textfield::GetCommandForKeyEvent(
+     case ui::VKEY_V:
+       return (control && !alt) ? ui::TextEditCommand::PASTE
+                                : ui::TextEditCommand::INVALID_COMMAND;
++    case ui::VKEY_U:
++      return (control && !alt) ? ui::TextEditCommand::DELETE_WHOLE_LINE
++                               : ui::TextEditCommand::INVALID_COMMAND;
+     case ui::VKEY_RIGHT:
+       // Ignore alt+right, which may be a browser navigation shortcut.
+       if (alt) {
+-- 
+2.38.1
+

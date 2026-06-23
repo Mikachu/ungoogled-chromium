@@ -113,3 +113,4 @@ extra/mikachu/0001-Remove-position-setting-code.patch
 extra/mikachu/0001-fix-deleting-and-editing-text.patch
 extra/mikachu/0001-A-more-reasonable-compose.patch
 extra/mikachu/0001-Use-gtk-file-dialogs-even-without-full-gtk-ui.patch
+extra/mikachu/0001-potentially-handle-ctrl-u-correctly.patch
