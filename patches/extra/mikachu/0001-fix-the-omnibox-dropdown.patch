@@ -1,0 +1,423 @@
+From 02d161caecd617ef1605efc4a71788ebb6a946f4 Mon Sep 17 00:00:00 2001
+From: Mikael Magnusson <mikachu@gmail.com>
+Date: Fri, 26 Jun 2026 19:21:03 +0200
+Subject: [PATCH] fix the omnibox dropdown
+
+---
+ chrome/browser/ui/BUILD.gn                    |  2 -
+ .../ui/views/omnibox/omnibox_header_view.h    |  1 -
+ .../omnibox_mouse_enter_exit_handler.cc       | 30 -----------
+ .../omnibox_mouse_enter_exit_handler.h        | 51 -------------------
+ .../views/omnibox/omnibox_popup_view_views.cc | 45 ++++++++++++++++
+ .../views/omnibox/omnibox_popup_view_views.h  | 20 ++++++++
+ .../ui/views/omnibox/omnibox_result_view.cc   | 36 ++++++-------
+ .../ui/views/omnibox/omnibox_result_view.h    |  8 ++-
+ 8 files changed, 83 insertions(+), 110 deletions(-)
+ delete mode 100644 chrome/browser/ui/views/omnibox/omnibox_mouse_enter_exit_handler.cc
+ delete mode 100644 chrome/browser/ui/views/omnibox/omnibox_mouse_enter_exit_handler.h
+
+diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
+index 8e3d986248..5db5205964 100644
+--- a/chrome/browser/ui/BUILD.gn
++++ b/chrome/browser/ui/BUILD.gn
+@@ -4088,8 +4088,6 @@ static_library("ui") {
+       "views/omnibox/omnibox_local_answer_header_view.h",
+       "views/omnibox/omnibox_match_cell_view.cc",
+       "views/omnibox/omnibox_match_cell_view.h",
+-      "views/omnibox/omnibox_mouse_enter_exit_handler.cc",
+-      "views/omnibox/omnibox_mouse_enter_exit_handler.h",
+       "views/omnibox/omnibox_popup_aim_presenter.cc",
+       "views/omnibox/omnibox_popup_aim_presenter.h",
+       "views/omnibox/omnibox_popup_closer.cc",
+diff --git a/chrome/browser/ui/views/omnibox/omnibox_header_view.h b/chrome/browser/ui/views/omnibox/omnibox_header_view.h
+index 5c1a599251..eb5f21d339 100644
+--- a/chrome/browser/ui/views/omnibox/omnibox_header_view.h
++++ b/chrome/browser/ui/views/omnibox/omnibox_header_view.h
+@@ -8,7 +8,6 @@
+ #include <string>
+ 
+ #include "base/memory/raw_ptr.h"
+-#include "chrome/browser/ui/views/omnibox/omnibox_mouse_enter_exit_handler.h"
+ #include "ui/base/metadata/metadata_header_macros.h"
+ #include "ui/views/controls/button/image_button.h"
+ #include "ui/views/view.h"
+diff --git a/chrome/browser/ui/views/omnibox/omnibox_mouse_enter_exit_handler.cc b/chrome/browser/ui/views/omnibox/omnibox_mouse_enter_exit_handler.cc
+deleted file mode 100644
+index 06eae9d99c..0000000000
+--- a/chrome/browser/ui/views/omnibox/omnibox_mouse_enter_exit_handler.cc
++++ /dev/null
+@@ -1,30 +0,0 @@
+-// Copyright 2020 The Chromium Authors
+-// Use of this source code is governed by a BSD-style license that can be
+-// found in the LICENSE file.
+-
+-#include "chrome/browser/ui/views/omnibox/omnibox_mouse_enter_exit_handler.h"
+-
+-#include "ui/events/event.h"
+-#include "ui/views/view.h"
+-
+-OmniboxMouseEnterExitHandler::OmniboxMouseEnterExitHandler(
+-    base::RepeatingClosure enter_exit_callback)
+-    : enter_exit_callback_(enter_exit_callback) {}
+-
+-OmniboxMouseEnterExitHandler::~OmniboxMouseEnterExitHandler() {
+-  for (views::View* view : observed_views_) {
+-    view->RemovePreTargetHandler(this);
+-  }
+-}
+-
+-void OmniboxMouseEnterExitHandler::ObserveMouseEnterExitOn(views::View* view) {
+-  view->AddPreTargetHandler(this);
+-  observed_views_.push_back(view);
+-}
+-
+-void OmniboxMouseEnterExitHandler::OnMouseEvent(ui::MouseEvent* event) {
+-  if (event->type() == ui::EventType::kMouseEntered ||
+-      event->type() == ui::EventType::kMouseExited) {
+-    enter_exit_callback_.Run();
+-  }
+-}
+diff --git a/chrome/browser/ui/views/omnibox/omnibox_mouse_enter_exit_handler.h b/chrome/browser/ui/views/omnibox/omnibox_mouse_enter_exit_handler.h
+deleted file mode 100644
+index b75d7e8db2..0000000000
+--- a/chrome/browser/ui/views/omnibox/omnibox_mouse_enter_exit_handler.h
++++ /dev/null
+@@ -1,51 +0,0 @@
+-// Copyright 2020 The Chromium Authors
+-// Use of this source code is governed by a BSD-style license that can be
+-// found in the LICENSE file.
+-
+-#ifndef CHROME_BROWSER_UI_VIEWS_OMNIBOX_OMNIBOX_MOUSE_ENTER_EXIT_HANDLER_H_
+-#define CHROME_BROWSER_UI_VIEWS_OMNIBOX_OMNIBOX_MOUSE_ENTER_EXIT_HANDLER_H_
+-
+-#include <vector>
+-
+-#include "base/functional/callback.h"
+-#include "base/memory/raw_ptr.h"
+-#include "ui/events/event_handler.h"
+-
+-namespace views {
+-class View;
+-}  // namespace views
+-
+-// Omnibox suggestion rows (and header rows) rely on mouse-enter and mouse-exit
+-// events to update their hover state (whether or not they are highlighted).
+-// But child Views sometimes interfere with receiving these events when the
+-// mouse is moved quickly, which causes rows to remain erroneously highlighted.
+-// This class solves that problem by bridging the child Views mouse event
+-// handler to a callback. This class instance must outlive all observed Views.
+-class OmniboxMouseEnterExitHandler : public ui::EventHandler {
+- public:
+-  // |enter_exit_callback| is called whenever one of the observed Views get a
+-  // mouse-enter or mouse-exit event.
+-  explicit OmniboxMouseEnterExitHandler(
+-      base::RepeatingClosure enter_exit_callback);
+-  OmniboxMouseEnterExitHandler(const OmniboxMouseEnterExitHandler&) = delete;
+-  OmniboxMouseEnterExitHandler& operator=(const OmniboxMouseEnterExitHandler&) =
+-      delete;
+-  ~OmniboxMouseEnterExitHandler() override;
+-
+-  // This instance must outlive |view|.
+-  void ObserveMouseEnterExitOn(views::View* view);
+-
+- private:
+-  void OnMouseEvent(ui::MouseEvent* event) override;
+-
+-  // This is called whenever one of the |observed_views_| has a mouse-enter or
+-  // mouse-exit event.
+-  const base::RepeatingClosure enter_exit_callback_;
+-
+-  // These are the Views for which we are observing mouse-enter or mouse-exit
+-  // events. This instance must outlive all of these Views, since these are
+-  // non-owning pointers, which we use in our destructor.
+-  std::vector<raw_ptr<views::View, VectorExperimental>> observed_views_;
+-};
+-
+-#endif  // CHROME_BROWSER_UI_VIEWS_OMNIBOX_OMNIBOX_MOUSE_ENTER_EXIT_HANDLER_H_
+diff --git a/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.cc b/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.cc
+index 973f59db0d..e8ae3c6c03 100644
+--- a/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.cc
++++ b/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.cc
+@@ -42,6 +42,8 @@
+ #include "ui/compositor/closure_animation_observer.h"
+ #include "ui/compositor/layer.h"
+ #include "ui/compositor/scoped_layer_animation_settings.h"
++#include "ui/events/event.h"
++#include "ui/events/event_handler.h"
+ #include "ui/gfx/image/image.h"
+ #include "ui/views/accessibility/view_accessibility.h"
+ #include "ui/views/cascading_property.h"
+@@ -257,6 +259,23 @@ void OmniboxPopupViewViews::WidgetObserverHelper::OnWidgetDestroying(
+   popup_view_->OnWidgetDestroying(widget);
+ }
+ 
++OmniboxPopupViewViews::HoverTracker::HoverTracker(
++    OmniboxPopupViewViews* popup)
++    : popup_(popup) {}
++
++OmniboxPopupViewViews::HoverTracker::~HoverTracker() = default;
++
++void OmniboxPopupViewViews::HoverTracker::OnMouseEvent(
++    ui::MouseEvent* event) {
++  if (event->type() == ui::EventType::kMouseMoved ||
++      event->type() == ui::EventType::kMouseEntered) {
++    gfx::Point point = event->location();
++    views::View::ConvertPointToTarget(
++        static_cast<views::View*>(event->target()), popup_, &point);
++    popup_->UpdateHoveredRow(popup_->GetIndexForPoint(point));
++  }
++}
++
+ OmniboxPopupViewViews::OmniboxPopupViewViews(OmniboxViewViews* omnibox_view,
+                                              OmniboxController* controller,
+                                              LocationBarView* location_bar_view)
+@@ -277,6 +296,11 @@ OmniboxPopupViewViews::OmniboxPopupViewViews(OmniboxViewViews* omnibox_view,
+   SetLayoutManager(std::make_unique<views::BoxLayout>(
+       views::BoxLayout::Orientation::kVertical));
+ 
++  // Receive exit events when the cursor leaves the popup entirely,
++  // not when it moves between child views.
++  SetNotifyEnterExitOnChild(true);
++  AddPreTargetHandler(&hover_tracker_);
++
+   GetViewAccessibility().SetRole(ax::mojom::Role::kListBox);
+   UpdateAccessibleStates();
+   UpdateAccessibleControlIds();
+@@ -284,6 +308,7 @@ OmniboxPopupViewViews::OmniboxPopupViewViews(OmniboxViewViews* omnibox_view,
+ }
+ 
+ OmniboxPopupViewViews::~OmniboxPopupViewViews() {
++  RemovePreTargetHandler(&hover_tracker_);
+   // We don't need to close or delete `widget_` here. The OS either has already
+   // closed the window, in which case it's been deleted, or it will soon.
+   if (widget_) {
+@@ -294,6 +319,25 @@ OmniboxPopupViewViews::~OmniboxPopupViewViews() {
+   UpdateAccessibleControlIds();
+ }
+ 
++void OmniboxPopupViewViews::OnMouseExited(const ui::MouseEvent& event) {
++  UpdateHoveredRow(OmniboxPopupSelection::kNoMatch);
++}
++
++void OmniboxPopupViewViews::UpdateHoveredRow(size_t new_index) {
++  if (hovered_index_ == new_index) {
++    return;
++  }
++  if (hovered_index_ != OmniboxPopupSelection::kNoMatch &&
++      HasMatchAt(hovered_index_)) {
++    result_view_at(hovered_index_)->SetHovered(false);
++  }
++  hovered_index_ = new_index;
++  if (hovered_index_ != OmniboxPopupSelection::kNoMatch &&
++      HasMatchAt(hovered_index_)) {
++    result_view_at(hovered_index_)->SetHovered(true);
++  }
++}
++
+ gfx::Image OmniboxPopupViewViews::GetMatchIcon(
+     const AutocompleteMatch& match,
+     SkColor vector_icon_color) const {
+@@ -355,6 +399,7 @@ void OmniboxPopupViewViews::UpdatePopupAppearance() {
+ 
+   if (!should_be_open) {
+     if (was_open) {
++      UpdateHoveredRow(OmniboxPopupSelection::kNoMatch);
+       // Check whether omnibox should not close per UI DevTools settings.
+       if (!widget_->ShouldHandleNativeWidgetActivationChanged(false)) {
+         return;
+diff --git a/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.h b/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.h
+index b355ee05a0..52a227f5d0 100644
+--- a/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.h
++++ b/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.h
+@@ -82,6 +82,7 @@ class OmniboxPopupViewViews : public views::View,
+   // views::View:
+   bool OnMouseDragged(const ui::MouseEvent& event) override;
+   void OnGestureEvent(ui::GestureEvent* event) override;
++  void OnMouseExited(const ui::MouseEvent& event) override;
+ 
+   // views::WidgetObserver:
+   void OnWidgetBoundsChanged(views::Widget* widget,
+@@ -135,6 +136,18 @@ class OmniboxPopupViewViews : public views::View,
+   size_t GetIndexForPoint(const gfx::Point& point) const;
+ 
+  private:
++  // Intercepts kMouseMoved events from the entire popup subtree to update
++  // row hover state based on cursor position, bypassing the fragile
++  // per-row enter/exit event machinery.
++  class HoverTracker : public ui::EventHandler {
++   public:
++    explicit HoverTracker(OmniboxPopupViewViews* popup);
++    ~HoverTracker() override;
++    void OnMouseEvent(ui::MouseEvent* event) override;
++   private:
++    raw_ptr<OmniboxPopupViewViews> popup_;
++  };
++
+   // Classes shouldn't observe multiple objects (to avoid inheriting
+   // `base::CheckedObserver` twice). Since `OmniboxPopupViewViews` already
+   // observes `OmniboxEditModel`, it needs `WidgetObserverHelper` to observe
+@@ -161,6 +174,8 @@ class OmniboxPopupViewViews : public views::View,
+ 
+   void UpdateAccessibleActiveDescendantForInvokingView();
+ 
++  void UpdateHoveredRow(size_t new_index);
++
+   // Updates a row view with the given match data. `previous_row_header` should
+   // be supplied with the header value for the previous match in order to detect
+   // when the header changes and needs to be displayed. Returns the current
+@@ -209,6 +224,11 @@ class OmniboxPopupViewViews : public views::View,
+   // Used to observe `views::Widget`. Manual (i.e. unscoped) observation because
+   // widgets get created and destroyed during `OmniboxPopupViewViews` lifetime.
+   WidgetObserverHelper widget_observer_helper_{this};
++
++  HoverTracker hover_tracker_{this};
++
++  size_t hovered_index_ = OmniboxPopupSelection::kNoMatch;
++
+   // Used to observe `OmniboxEditModel`.
+   base::ScopedObservation<OmniboxEditModel, OmniboxEditModel::Observer>
+       edit_model_observation_{this};
+diff --git a/chrome/browser/ui/views/omnibox/omnibox_result_view.cc b/chrome/browser/ui/views/omnibox/omnibox_result_view.cc
+index d29abdc792..646be46679 100644
+--- a/chrome/browser/ui/views/omnibox/omnibox_result_view.cc
++++ b/chrome/browser/ui/views/omnibox/omnibox_result_view.cc
+@@ -165,11 +165,7 @@ END_METADATA
+ OmniboxResultView::OmniboxResultView(OmniboxPopupViewViews* popup_view,
+                                      size_t model_index)
+     : popup_view_(popup_view),
+-      model_index_(model_index),
+-      // Using base::Unretained is correct here. 'this' outlives the callback.
+-      mouse_enter_exit_handler_(
+-          base::BindRepeating(&OmniboxResultView::UpdateHoverState,
+-                              base::Unretained(this))) {
++      model_index_(model_index) {
+   CHECK_GE(model_index, 0u);
+ 
+   // The view hierarchy is:
+@@ -324,13 +320,19 @@ OmniboxResultView::OmniboxResultView(OmniboxPopupViewViews* popup_view,
+                                views::MaximumFlexSizeRule::kPreferred)
+           .WithOrder(1));
+ 
+-  mouse_enter_exit_handler_.ObserveMouseEnterExitOn(this);
+-
+   GetViewAccessibility().SetRole(ax::mojom::Role::kListBoxOption);
+   UpdateAccessibleName();
+   GetViewAccessibility().SetPosInSet(model_index_ + 1);
+ }
+ 
++void OmniboxResultView::SetHovered(bool hovered) {
++  if (hovered_ == hovered) {
++    return;
++  }
++  hovered_ = hovered;
++  UpdateHoverState();
++}
++
+ OmniboxResultView::~OmniboxResultView() = default;
+ 
+ // static
+@@ -585,8 +587,8 @@ OmniboxPartState OmniboxResultView::GetThemeState() const {
+ 
+   // If we don't highlight the whole row when the user has the mouse over the
+   // remove suggestion button, it's unclear which suggestion is being removed.
+-  return IsMouseHovered() ? OmniboxPartState::HOVERED
+-                          : OmniboxPartState::NORMAL;
++  return hovered_ ? OmniboxPartState::HOVERED
++                  : OmniboxPartState::NORMAL;
+ }
+ 
+ void OmniboxResultView::OnMatchIconUpdated() {
+@@ -657,14 +659,6 @@ void OmniboxResultView::OnMouseReleased(const ui::MouseEvent& event) {
+   }
+ }
+ 
+-void OmniboxResultView::OnMouseEntered(const ui::MouseEvent& event) {
+-  UpdateHoverState();
+-}
+-
+-void OmniboxResultView::OnMouseExited(const ui::MouseEvent& event) {
+-  UpdateHoverState();
+-}
+-
+ void OmniboxResultView::OnThemeChanged() {
+   views::View::OnThemeChanged();
+   ApplyThemeAndRefreshIcons(/*force_reapply_styles=*/true);
+@@ -709,7 +703,7 @@ void OmniboxResultView::UpdateHoverState() {
+   UpdateFeedbackButtonsVisibility();
+   UpdateRemoveSuggestionVisibility();
+   ApplyThemeAndRefreshIcons();
+-  GetViewAccessibility().SetIsHovered(IsMouseHovered());
++  GetViewAccessibility().SetIsHovered(hovered_);
+ }
+ 
+ void OmniboxResultView::UpdateDividerLineVisibility() {
+@@ -727,7 +721,7 @@ void OmniboxResultView::UpdateSecondaryTextVisibility() {
+   const bool is_contextual = match_.IsContextualSearchSuggestion();
+ 
+   const bool show_description =
+-      !is_contextual || GetMatchSelected() || IsMouseHovered();
++      !is_contextual || GetMatchSelected() || hovered_;
+   if (suggestion_view_->description()->GetVisible() != show_description) {
+     suggestion_view_->description()->SetVisible(show_description);
+     suggestion_view_->separator()->SetVisible(show_description);
+@@ -743,7 +737,7 @@ void OmniboxResultView::UpdateFeedbackButtonsVisibility() {
+       popup_view_->controller()->edit_model()->IsPopupControlPresentOnMatch(
+           OmniboxPopupSelection(
+               model_index_, OmniboxPopupSelection::FOCUSED_BUTTON_THUMBS_UP)) &&
+-      (GetMatchSelected() || IsMouseHovered());
++      (GetMatchSelected() || hovered_);
+ 
+   // Same rules apply to both buttons.
+   thumbs_up_button_->SetVisible(new_visibility);
+@@ -763,7 +757,7 @@ void OmniboxResultView::UpdateRemoveSuggestionVisibility() {
+           OmniboxPopupSelection(
+               model_index_,
+               OmniboxPopupSelection::FOCUSED_BUTTON_REMOVE_SUGGESTION)) &&
+-      (GetMatchSelected() || IsMouseHovered());
++      (GetMatchSelected() || hovered_);
+ 
+   remove_suggestion_button_->SetVisible(new_visibility);
+ 
+diff --git a/chrome/browser/ui/views/omnibox/omnibox_result_view.h b/chrome/browser/ui/views/omnibox/omnibox_result_view.h
+index aaeaef3d92..2b772ac4af 100644
+--- a/chrome/browser/ui/views/omnibox/omnibox_result_view.h
++++ b/chrome/browser/ui/views/omnibox/omnibox_result_view.h
+@@ -13,7 +13,6 @@
+ #include "base/gtest_prod_util.h"
+ #include "base/memory/raw_ptr.h"
+ #include "base/memory/weak_ptr.h"
+-#include "chrome/browser/ui/views/omnibox/omnibox_mouse_enter_exit_handler.h"
+ #include "components/omnibox/browser/autocomplete_match.h"
+ #include "components/omnibox/browser/omnibox_popup_selection.h"
+ #include "components/omnibox/browser/suggestion_answer.h"
+@@ -89,6 +88,8 @@ class OmniboxResultView : public views::View {
+   void ButtonPressed(OmniboxPopupSelection::LineState state,
+                      const ui::Event& event);
+ 
++  void SetHovered(bool hovered);
++
+   void UpdateAccessibilityProperties();
+ 
+   void UpdateAccessibleName();
+@@ -97,8 +98,6 @@ class OmniboxResultView : public views::View {
+   bool OnMousePressed(const ui::MouseEvent& event) override;
+   bool OnMouseDragged(const ui::MouseEvent& event) override;
+   void OnMouseReleased(const ui::MouseEvent& event) override;
+-  void OnMouseEntered(const ui::MouseEvent& event) override;
+-  void OnMouseExited(const ui::MouseEvent& event) override;
+   void OnThemeChanged() override;
+ 
+  private:
+@@ -174,8 +173,7 @@ class OmniboxResultView : public views::View {
+   // The "X" button at the end of the match cell, used to remove suggestions.
+   raw_ptr<views::ImageButton> remove_suggestion_button_;
+ 
+-  // Keeps track of mouse-enter and mouse-exit events of child Views.
+-  OmniboxMouseEnterExitHandler mouse_enter_exit_handler_;
++  bool hovered_ = false;
+ 
+   base::WeakPtrFactory<OmniboxResultView> weak_factory_{this};
+ };
+-- 
+2.38.1
+
