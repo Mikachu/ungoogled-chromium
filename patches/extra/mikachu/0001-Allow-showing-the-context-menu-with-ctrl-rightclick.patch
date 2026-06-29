@@ -1,0 +1,38 @@
+From 05cfade64534e2d3c2ba3a90074a459a54c483b4 Mon Sep 17 00:00:00 2001
+From: Mikael Magnusson <mikachu@gmail.com>
+Date: Mon, 29 Jun 2026 07:32:56 +0200
+Subject: [PATCH] Allow showing the context menu with ctrl-rightclick
+
+---
+ .../renderer/core/frame/web_frame_widget_impl.cc     | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/third_party/blink/renderer/core/frame/web_frame_widget_impl.cc b/third_party/blink/renderer/core/frame/web_frame_widget_impl.cc
+index 9ae019e621..8228c599da 100644
+--- a/third_party/blink/renderer/core/frame/web_frame_widget_impl.cc
++++ b/third_party/blink/renderer/core/frame/web_frame_widget_impl.cc
+@@ -1183,11 +1183,19 @@ void WebFrameWidgetImpl::MouseContextMenu(const WebMouseEvent& event) {
+ 
+   {
+     ContextMenuAllowedScope scope;
++    if (event.GetModifiers() & WebMouseEvent::kControlKey) {
++      // Ctrl+right-click: bypass the JS 'contextmenu' event so that sites
++      // cannot suppress the browser context menu via preventDefault().
++      gfx::PointF pos = transformed_event.PositionInRootFrame();
++      GetPage()->GetContextMenuController().ShowContextMenuAtPoint(
++          target_local_frame, pos.x(), pos.y(), nullptr);
++      return;
++    }
++    // Actually showing the context menu is handled by the ContextMenuClient
++    // implementation...
+     target_local_frame->GetEventHandler().SendContextMenuEvent(
+         transformed_event);
+   }
+-  // Actually showing the context menu is handled by the ContextMenuClient
+-  // implementation...
+ }
+ 
+ WebInputEventResult WebFrameWidgetImpl::HandleMouseUp(
+-- 
+2.38.1
+
