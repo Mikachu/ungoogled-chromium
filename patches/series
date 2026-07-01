@@ -115,3 +115,4 @@ extra/mikachu/0001-Use-gtk-file-dialogs-even-without-full-gtk-ui.patch
 extra/mikachu/0001-potentially-handle-ctrl-u-correctly.patch
 extra/mikachu/0001-fix-the-omnibox-dropdown.patch
 extra/mikachu/0001-Allow-showing-the-context-menu-with-ctrl-rightclick.patch
+extra/mikachu/0001-Open-new-tabs-in-the-right-place.patch

@@ -1,0 +1,183 @@
+From b229080e46e3aea3a8e6968106c0b74b036e58b7 Mon Sep 17 00:00:00 2001
+From: Mikael Magnusson <mikachu@gmail.com>
+Date: Wed, 1 Jul 2026 17:09:51 +0200
+Subject: [PATCH] Open new tabs in the right place
+
+---
+ .../internal/profile_browser_collection.cc    |  9 ++
+ .../startup/startup_browser_creator_impl.cc   | 82 +------------------
+ chrome/browser/ui/views/frame/browser_view.cc | 14 ++++
+ 3 files changed, 27 insertions(+), 78 deletions(-)
+
+diff --git a/chrome/browser/ui/browser_window/internal/profile_browser_collection.cc b/chrome/browser/ui/browser_window/internal/profile_browser_collection.cc
+index b3776825ae..9f5c3d0bca 100644
+--- a/chrome/browser/ui/browser_window/internal/profile_browser_collection.cc
++++ b/chrome/browser/ui/browser_window/internal/profile_browser_collection.cc
+@@ -43,6 +43,7 @@ BrowserWindowInterface* ProfileBrowserCollection::FindTabbedBrowser(
+ #if !BUILDFLAG(IS_ANDROID)
+     Browser* browser_concrete = browser->GetBrowserForMigrationOnly();
+     if (!browser_concrete->window() ||
++        browser_concrete->window()->IsMinimized() ||
+         !browser_concrete->window()->IsOnCurrentWorkspace()) {
+       return true;
+     }
+@@ -57,6 +58,14 @@ BrowserWindowInterface* ProfileBrowserCollection::FindTabbedBrowser(
+   } else {
+     ForEach(find, Order::kActivation);
+   }
++#if !BUILDFLAG(IS_LINUX)
++  // On non-Linux platforms, fall back to the globally last-active browser if
++  // no non-minimized window was found on the current workspace.
++  if (!match) {
++    match = GetLastActiveBrowser();
++  }
++#endif
++
+   return match;
+ }
+ 
+diff --git a/chrome/browser/ui/startup/startup_browser_creator_impl.cc b/chrome/browser/ui/startup/startup_browser_creator_impl.cc
+index e650e818e8..065219faa7 100644
+--- a/chrome/browser/ui/startup/startup_browser_creator_impl.cc
++++ b/chrome/browser/ui/startup/startup_browser_creator_impl.cc
+@@ -40,7 +40,6 @@
+ #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
+ #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
+ #include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
+-#include "chrome/browser/ui/browser_window/public/global_browser_collection.h"
+ #include "chrome/browser/ui/navigator/browser_navigator.h"
+ #include "chrome/browser/ui/navigator/browser_navigator_params.h"
+ #include "chrome/browser/ui/startup/infobar_utils.h"
+@@ -67,10 +66,6 @@
+ #include "content/public/common/content_switches.h"
+ #include "url/origin.h"
+ 
+-#if BUILDFLAG(IS_LINUX)
+-#include "ui/display/screen.h"
+-#endif
+-
+ #if BUILDFLAG(IS_MAC)
+ #include "base/mac/mac_util.h"
+ #include "chrome/browser/app_controller_mac.h"
+@@ -85,9 +80,7 @@
+ #include "components/app_restore/full_restore_utils.h"
+ #endif
+ 
+-#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_CHROMEOS)
+ #include "chrome/browser/ui/browser_window/public/profile_browser_collection.h"
+-#endif
+ 
+ #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+ #include "chrome/browser/search_integrity/search_integrity.h"
+@@ -132,79 +125,12 @@ void PrependTabs(const StartupTabs& from, StartupTabs* to) {
+ Browser* GetExistingBrowserForOpenBehavior(
+     Profile* profile,
+     chrome::startup::IsProcessStartup process_startup) {
+-  BrowserWindowInterface* current_browser =
+-      ProfileBrowserCollection::GetForProfile(profile)->GetLastActiveBrowser();
+-  Browser* workspace_browser =
+-      current_browser ? current_browser->GetBrowserForMigrationOnly() : nullptr;
+-
+-#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_CHROMEOS)
+-  // On Windows and ChromeOS we specifically want to select the last active
+-  // window on the current workspace if possible, see crbug.com/497494119.
+-  ProfileBrowserCollection::GetForProfile(profile)->ForEach(
+-      [&](BrowserWindowInterface* window) {
+-        Browser* const candidate = window->GetBrowserForMigrationOnly();
+-        if (window->GetType() != BrowserWindowInterface::Type::TYPE_NORMAL) {
+-          return true;
+-        }
+-
+-        BrowserWindow* const browser_window = candidate->window();
+-        if (!browser_window) {
+-          return true;
+-        }
+-
+-        if (browser_window->IsOnCurrentWorkspace()) {
+-          workspace_browser = candidate;
+-          return false;
+-        }
+-        return true;
+-      },
+-      BrowserCollection::Order::kActivation);
+-#endif
+-
+-#if BUILDFLAG(IS_LINUX)
+   const bool match_original_profiles =
+       process_startup == chrome::startup::IsProcessStartup::kYes;
+-  display::Screen* const screen = display::Screen::Get();
+-  const std::string current_workspace =
+-      screen ? screen->GetCurrentWorkspace() : std::string();
+-
+-  if (!current_workspace.empty()) {
+-    GlobalBrowserCollection::GetInstance()->ForEach(
+-        [&, current_workspace,
+-         match_original_profiles](BrowserWindowInterface* window) {
+-          Browser* const candidate = window->GetBrowserForMigrationOnly();
+-
+-          Profile* const candidate_profile = window->GetProfile();
+-          if (match_original_profiles) {
+-            if (candidate_profile->GetOriginalProfile() !=
+-                profile->GetOriginalProfile()) {
+-              return true;
+-            }
+-          } else if (candidate_profile != profile) {
+-            return true;
+-          }
+-
+-          if (window->GetType() != BrowserWindowInterface::Type::TYPE_NORMAL) {
+-            return true;
+-          }
+-
+-          BrowserWindow* const browser_window = candidate->window();
+-          if (!browser_window) {
+-            return true;
+-          }
+-
+-          if (browser_window->IsVisibleOnAllWorkspaces() ||
+-              browser_window->GetWorkspace() == current_workspace) {
+-            workspace_browser = candidate;
+-            return false;
+-          }
+-          return true;
+-        },
+-        BrowserCollection::Order::kActivation);
+-  }
+-#endif  // BUILDFLAG(IS_LINUX)
+-
+-  return workspace_browser;
++  BrowserWindowInterface* const result =
++      ProfileBrowserCollection::GetForProfile(profile)
++          ->FindTabbedBrowser(match_original_profiles);
++  return result ? result->GetBrowserForMigrationOnly() : nullptr;
+ }
+ 
+ }  // namespace
+diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/views/frame/browser_view.cc
+index 1b6794ec58..a5c1ed69de 100644
+--- a/chrome/browser/ui/views/frame/browser_view.cc
++++ b/chrome/browser/ui/views/frame/browser_view.cc
+@@ -1736,6 +1736,20 @@ bool BrowserView::IsOnCurrentWorkspace() const {
+   return gfx::IsWindowOnCurrentVirtualDesktop(
+              native_win->GetHost()->GetAcceleratedWidget(),
+              virtual_desktop_manager) != false;
++#elif BUILDFLAG(IS_LINUX)
++  if (IsVisibleOnAllWorkspaces()) {
++    return true;
++  }
++  const std::string workspace = GetWorkspace();
++  if (workspace.empty()) {
++    return true;  // unknown; assume current workspace.
++  }
++  display::Screen* const screen = display::Screen::Get();
++  if (!screen) {
++    return true;
++  }
++  const std::string current_workspace = screen->GetCurrentWorkspace();
++  return current_workspace.empty() || workspace == current_workspace;
+ #else
+   return true;
+ #endif  // BUILDFLAG(IS_CHROMEOS)
+-- 
+2.38.1
+
