@@ -1,0 +1,63 @@
+From e56e429775617a77e5c01cf06731e31dc6ea115a Mon Sep 17 00:00:00 2001
+From: Mikael Magnusson <mikachu@gmail.com>
+Date: Wed, 1 Jul 2026 18:16:06 +0200
+Subject: [PATCH] Fix shift-insert
+
+---
+ chrome/browser/ui/views/omnibox/omnibox_view_views.cc      | 4 ++--
+ .../blink/renderer/core/editing/editing_behavior.cc        | 4 ++++
+ ui/views/controls/textfield/textfield.cc                   | 7 +++++++
+ 3 files changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/chrome/browser/ui/views/omnibox/omnibox_view_views.cc b/chrome/browser/ui/views/omnibox/omnibox_view_views.cc
+index 3b0b2798df..ca516b3a5b 100644
+--- a/chrome/browser/ui/views/omnibox/omnibox_view_views.cc
++++ b/chrome/browser/ui/views/omnibox/omnibox_view_views.cc
+@@ -2241,8 +2241,8 @@ bool OmniboxViewViews::HandleKeyEvent(views::Textfield* textfield,
+ 
+     case ui::VKEY_INSERT:
+       if (shift && !control &&
+-          IsTextEditCommandEnabled(ui::TextEditCommand::PASTE)) {
+-        ExecuteTextEditCommand(ui::TextEditCommand::PASTE);
++          !GetReadOnly()) {
++        PasteSelectionClipboard(base::DoNothing());
+         return true;
+       }
+       break;
+diff --git a/third_party/blink/renderer/core/editing/editing_behavior.cc b/third_party/blink/renderer/core/editing/editing_behavior.cc
+index c152217927..78d21782ee 100644
+--- a/third_party/blink/renderer/core/editing/editing_behavior.cc
++++ b/third_party/blink/renderer/core/editing/editing_behavior.cc
+@@ -166,7 +166,11 @@ const KeyboardCodeKeyDownEntry kKeyboardCodeKeyDownEntries[] = {
+     {VKEY_RETURN, kAltKey | kShiftKey, "InsertNewline"},
+     {VKEY_RETURN, kShiftKey, "InsertLineBreak"},
+     {VKEY_INSERT, kCtrlKey, "Copy"},
++#if BUILDFLAG(IS_LINUX)
++    {VKEY_INSERT, kShiftKey, "PasteGlobalSelection"},
++#else
+     {VKEY_INSERT, kShiftKey, "Paste"},
++#endif
+     {VKEY_DELETE, kShiftKey, "Cut"},
+ #if !BUILDFLAG(IS_MAC)
+     // On OS X, we pipe these back to the browser, so that it can do menu item
+diff --git a/ui/views/controls/textfield/textfield.cc b/ui/views/controls/textfield/textfield.cc
+index 1a7a4064a5..255773cbd9 100644
+--- a/ui/views/controls/textfield/textfield.cc
++++ b/ui/views/controls/textfield/textfield.cc
+@@ -838,6 +838,13 @@ bool Textfield::OnKeyPressed(const ui::KeyEvent& event) {
+         }
+         return false;
+       }
++    } else {
++      if (event.key_code() == ui::VKEY_INSERT &&
++          event.IsShiftDown() && !event.IsControlDown() &&
++          !GetReadOnly()) {
++        PasteSelectionClipboard(base::DoNothing());
++        return true;
++      }
+     }
+   }
+ #endif
+-- 
+2.38.1
+
