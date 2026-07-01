@@ -1,0 +1,35 @@
+From 7a06f81bf643321a9f936075669e8bf1b17435d5 Mon Sep 17 00:00:00 2001
+From: Mikael Magnusson <mikachu@gmail.com>
+Date: Wed, 1 Jul 2026 17:40:00 +0200
+Subject: [PATCH] fix backspace in location entry
+
+---
+ .../browser/ui/views/omnibox/omnibox_view_views.cc   | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/chrome/browser/ui/views/omnibox/omnibox_view_views.cc b/chrome/browser/ui/views/omnibox/omnibox_view_views.cc
+index c6cd2498ea..3b0b2798df 100644
+--- a/chrome/browser/ui/views/omnibox/omnibox_view_views.cc
++++ b/chrome/browser/ui/views/omnibox/omnibox_view_views.cc
+@@ -2248,6 +2248,18 @@ bool OmniboxViewViews::HandleKeyEvent(views::Textfield* textfield,
+       break;
+ 
+     case ui::VKEY_BACK:
++      // When inline autocompletion is active (popup open, selection at end of
++      // text), plain backspace should delete both the autocompletion and the
++      // last typed character in one keystroke, so the user doesn't have to
++      // press backspace twice to undo their last input. Shift+backspace
++      // preserves the old behaviour of deleting only the autocompletion.
++      if (!shift && HasSelection() && controller()->IsPopupOpen()) {
++        const gfx::Range sel = GetSelectedRange();
++        if (sel.GetMax() == GetText().length() && sel.GetMin() > 0) {
++          SetSelectedRange(gfx::Range(sel.GetMax(), sel.GetMin() - 1));
++          return false;
++        }
++      }
+       // No extra handling is needed in keyword search mode, if there is a
+       // non-empty selection, or if the cursor is not leading the text.
+       if (controller()->edit_model()->is_keyword_hint() ||
+-- 
+2.38.1
+
