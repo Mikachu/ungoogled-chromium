@@ -28,8 +28,8 @@
 +    {blink::features::kSpoofWebGLVendor, "Mesa"},
 +};
 +const FeatureEntry::FeatureParam kSpoofWebGL_Nvidia[] = {
-+    {blink::features::kSpoofWebGLRenderer, "NVIDIA GeForce GTX 980, or similar"},
-+    {blink::features::kSpoofWebGLVendor, "NVIDIA Corporation"},
++    {blink::features::kSpoofWebGLRenderer, "ANGLE (NVIDIA Corporation, GeForce GTX 980/PCIe/SS2, OpenGL 4.5.0)"},
++    {blink::features::kSpoofWebGLVendor, "Google Inc. (NVIDIA Corporation)"},
 +};
 +const FeatureEntry::FeatureParam kSpoofWebGL_Qualcomm[] = {
 +    {blink::features::kSpoofWebGLRenderer, "Adreno (TM) 610"},
