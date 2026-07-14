@@ -136,16 +136,6 @@
    return nullptr;
  }
  
---- a/chrome/browser/actor/ui/actor_ui_tab_controller.cc
-+++ b/chrome/browser/actor/ui/actor_ui_tab_controller.cc
-@@ -50,7 +50,6 @@ ActorUiTabController::ActorUiTabControll
-       scoped_unowned_user_data_(tab.GetUnownedUserDataHost(), *this) {
-   CHECK(base::FeatureList::IsEnabled(features::kGlicActorUi));
-   CHECK(base::FeatureList::IsEnabled(features::kGlicActor));
--  CHECK(actor_keyed_service_);
- }
- 
- ActorUiTabController::~ActorUiTabController() = default;
 --- a/chrome/browser/browser_process_impl.cc
 +++ b/chrome/browser/browser_process_impl.cc
 @@ -260,12 +260,10 @@ void OnLocalStatePrefsLoaded();
@@ -825,7 +815,7 @@
      "//chrome/common",
 --- a/chrome/browser/ui/pdf/chrome_pdf_document_helper_client.cc
 +++ b/chrome/browser/ui/pdf/chrome_pdf_document_helper_client.cc
-@@ -146,22 +146,3 @@ void ChromePDFDocumentHelperClient::SetP
+@@ -152,22 +152,3 @@ void ChromePDFDocumentHelperClient::SetP
    }
  }
  
@@ -911,7 +901,7 @@
          std::make_unique<indigo::IndigoPageActionController>(
 --- a/chrome/browser/ui/views/user_education/browser_user_education_service.cc
 +++ b/chrome/browser/ui/views/user_education/browser_user_education_service.cc
-@@ -908,40 +908,6 @@ void MaybeRegisterChromeFeaturePromos(
+@@ -925,40 +925,6 @@ void MaybeRegisterChromeFeaturePromos(
                         "Triggered when the PDF Viewer opens.")));
  #endif
  
