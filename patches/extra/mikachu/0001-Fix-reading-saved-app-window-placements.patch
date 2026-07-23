@@ -1,0 +1,33 @@
+From 52ac1e6c0f78052d7c29bca9b9f8161be71baf4c Mon Sep 17 00:00:00 2001
+From: Mikael Magnusson <mikachu@gmail.com>
+Date: Fri, 24 Jul 2026 01:07:08 +0200
+Subject: [PATCH] Fix reading saved app window placements
+
+It was saved split by dots, but read back literally. Save them literally too.
+---
+ chrome/browser/ui/browser_window_state.cc | 9 +--------
+ 1 file changed, 1 insertion(+), 8 deletions(-)
+
+diff --git a/chrome/browser/ui/browser_window_state.cc b/chrome/browser/ui/browser_window_state.cc
+index e65ce268fd..bb183313ba 100644
+--- a/chrome/browser/ui/browser_window_state.cc
++++ b/chrome/browser/ui/browser_window_state.cc
+@@ -77,14 +77,7 @@ base::DictValue& GetWindowPlacementDictionaryReadWrite(
+   // on window name.
+   scoped_update =
+       std::make_unique<ScopedDictPrefUpdate>(prefs, prefs::kAppWindowPlacement);
+-  base::DictValue* this_app_dict =
+-      (*scoped_update)->FindDictByDottedPath(window_name);
+-  if (this_app_dict) {
+-    return *this_app_dict;
+-  }
+-  return (*scoped_update)
+-      ->SetByDottedPath(window_name, base::DictValue())
+-      ->GetDict();
++  return *(*scoped_update)->EnsureDict(window_name);
+ }
+ 
+ const base::DictValue* GetWindowPlacementDictionaryReadOnly(
+-- 
+2.38.1
+
