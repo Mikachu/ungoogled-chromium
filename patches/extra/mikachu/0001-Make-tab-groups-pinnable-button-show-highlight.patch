@@ -1,0 +1,107 @@
+From 3cca06e85fb17762a004961a55ebc76a2b23fcb4 Mon Sep 17 00:00:00 2001
+From: Mikael Magnusson <mikachu@gmail.com>
+Date: Sat, 25 Jul 2026 06:02:51 +0200
+Subject: [PATCH] Make tab groups pinnable button show highlight
+
+---
+ chrome/browser/ui/browser_actions.cc             | 16 ++++++++++++++++
+ .../saved_tab_group_everything_menu.cc           |  7 +++++++
+ .../saved_tab_group_everything_menu.h            |  5 +++++
+ 3 files changed, 28 insertions(+)
+
+diff --git a/chrome/browser/ui/browser_actions.cc b/chrome/browser/ui/browser_actions.cc
+index 72a166fd6b..088a3c89bb 100644
+--- a/chrome/browser/ui/browser_actions.cc
++++ b/chrome/browser/ui/browser_actions.cc
+@@ -961,6 +961,7 @@ void BrowserActions::InitializeChromeMenuActions() {
+                   return;
+                 }
+                 gfx::Rect anchor_bounds;
++                PinnedActionToolbarButton* button = nullptr;
+                 auto* toolbar_button_provider =
+                     bwi->GetBrowserForMigrationOnly()
+                         ->GetBrowserView()
+@@ -974,15 +975,30 @@ void BrowserActions::InitializeChromeMenuActions() {
+                             .GetIfView();
+                     if (anchor_view) {
+                       anchor_bounds = anchor_view->GetBoundsInScreen();
++                      button = views::AsViewClass<PinnedActionToolbarButton>(anchor_view);
+                     }
+                   }
+                 }
++              if (button) {
++                button->AddHighlight();
++              }
+                 self->tab_groups_menu_ =
+                     std::make_unique<tab_groups::STGEverythingMenu>(
+                         /*menu_button_controller=*/nullptr,
+                         bwi->GetBrowserForMigrationOnly(),
+                         tab_groups::STGEverythingMenu::MenuContext::
+                             kSavedTabGroupBar);
++              if (button) {
++                self->tab_groups_menu_->SetOnMenuClosedCallback(
++                    base::BindOnce(
++                        [](base::WeakPtr<views::View> weak_view) {
++                          if (auto* view = weak_view.get()) {
++                            views::AsViewClass<PinnedActionToolbarButton>(view)
++                                ->ResetHighlight();
++                          }
++                        },
++                        button->GetWeakPtr()));
++              }
+                 self->tab_groups_menu_->RunMenu(anchor_bounds);
+               },
+               base::Unretained(this), bwi))
+diff --git a/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc b/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc
+index 88d411dae3..dd6ef1d945 100644
+--- a/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc
++++ b/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc
+@@ -433,8 +433,15 @@ void STGEverythingMenu::WillShowMenu(views::MenuItemView* menu) {
+   }
+ }
+ 
++void STGEverythingMenu::SetOnMenuClosedCallback(base::OnceClosure callback) {
++  on_menu_closed_callback_ = std::move(callback);
++}
++
+ void STGEverythingMenu::OnMenuClosed(views::MenuItemView* menu) {
+   expand_on_hover_lock_.reset();
++  if (on_menu_closed_callback_) {
++    std::move(on_menu_closed_callback_).Run();
++  }
+ }
+ 
+ STGEverythingMenu::~STGEverythingMenu() = default;
+diff --git a/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.h b/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.h
+index fedb557aa2..b0693e70be 100644
+--- a/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.h
++++ b/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.h
+@@ -10,6 +10,7 @@
+ #include <optional>
+ #include <vector>
+ 
++#include "base/functional/callback.h"
+ #include "base/memory/raw_ptr.h"
+ #include "base/uuid.h"
+ #include "chrome/browser/ui/browser.h"
+@@ -66,6 +67,8 @@ class STGEverythingMenu : public views::MenuDelegate,
+   // Runs the menu. Only called via pressing the Everything button.
+   void RunMenu(gfx::Rect anchor_bounds_override = gfx::Rect());
+ 
++  void SetOnMenuClosedCallback(base::OnceClosure callback);
++
+   bool IsShowing() { return menu_runner_ && menu_runner_->IsRunning(); }
+ 
+   // Whether or not a saved tab group item in the Everything menu should have
+@@ -125,6 +128,8 @@ class STGEverythingMenu : public views::MenuDelegate,
+   // Owned by the Everything button.
+   raw_ptr<views::MenuButtonController> const menu_button_controller_;
+ 
++  base::OnceClosure on_menu_closed_callback_;
++
+   // The command id that gets updated and assigned to tab groups and their
+   // submenu items.
+   int latest_tab_group_command_id_ = -1;
+-- 
+2.38.1
+
