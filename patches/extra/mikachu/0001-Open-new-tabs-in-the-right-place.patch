@@ -1,27 +1,29 @@
-From b229080e46e3aea3a8e6968106c0b74b036e58b7 Mon Sep 17 00:00:00 2001
+From 72f9eccd8b87bc44680511242ee3328a6f0d0e5e Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Wed, 1 Jul 2026 17:09:51 +0200
 Subject: [PATCH] Open new tabs in the right place
 
 ---
- .../internal/profile_browser_collection.cc    |  9 ++
- .../startup/startup_browser_creator_impl.cc   | 82 +------------------
+ .../internal/profile_browser_collection.cc    | 11 ++-
+ .../startup/startup_browser_creator_impl.cc   | 84 +------------------
  chrome/browser/ui/views/frame/browser_view.cc | 14 ++++
- 3 files changed, 27 insertions(+), 78 deletions(-)
+ 3 files changed, 28 insertions(+), 81 deletions(-)
 
 diff --git a/chrome/browser/ui/browser_window/internal/profile_browser_collection.cc b/chrome/browser/ui/browser_window/internal/profile_browser_collection.cc
-index b3776825ae..9f5c3d0bca 100644
+index 5329d73ade..a30d3d0aef 100644
 --- a/chrome/browser/ui/browser_window/internal/profile_browser_collection.cc
 +++ b/chrome/browser/ui/browser_window/internal/profile_browser_collection.cc
-@@ -43,6 +43,7 @@ BrowserWindowInterface* ProfileBrowserCollection::FindTabbedBrowser(
+@@ -42,7 +42,8 @@ BrowserWindowInterface* ProfileBrowserCollection::FindTabbedBrowser(
+ 
  #if !BUILDFLAG(IS_ANDROID)
-     Browser* browser_concrete = browser->GetBrowserForMigrationOnly();
-     if (!browser_concrete->window() ||
-+        browser_concrete->window()->IsMinimized() ||
-         !browser_concrete->window()->IsOnCurrentWorkspace()) {
+     BrowserWindow* browser_window = BrowserWindow::FromBrowser(browser);
+-    if (!browser_window || !browser_window->IsOnCurrentWorkspace()) {
++    if (!browser_window || !browser_window->IsOnCurrentWorkspace() ||
++        browser_window->IsMinimized()) {
        return true;
      }
-@@ -57,6 +58,14 @@ BrowserWindowInterface* ProfileBrowserCollection::FindTabbedBrowser(
+ #endif
+@@ -56,6 +57,14 @@ BrowserWindowInterface* ProfileBrowserCollection::FindTabbedBrowser(
    } else {
      ForEach(find, Order::kActivation);
    }
@@ -37,7 +39,7 @@ index b3776825ae..9f5c3d0bca 100644
  }
  
 diff --git a/chrome/browser/ui/startup/startup_browser_creator_impl.cc b/chrome/browser/ui/startup/startup_browser_creator_impl.cc
-index e650e818e8..065219faa7 100644
+index a1d71b78b0..8f365271a7 100644
 --- a/chrome/browser/ui/startup/startup_browser_creator_impl.cc
 +++ b/chrome/browser/ui/startup/startup_browser_creator_impl.cc
 @@ -40,7 +40,6 @@
@@ -69,7 +71,7 @@ index e650e818e8..065219faa7 100644
  
  #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
  #include "chrome/browser/search_integrity/search_integrity.h"
-@@ -132,79 +125,12 @@ void PrependTabs(const StartupTabs& from, StartupTabs* to) {
+@@ -132,81 +125,12 @@ void PrependTabs(const StartupTabs& from, StartupTabs* to) {
  Browser* GetExistingBrowserForOpenBehavior(
      Profile* profile,
      chrome::startup::IsProcessStartup process_startup) {
@@ -88,7 +90,8 @@ index e650e818e8..065219faa7 100644
 -          return true;
 -        }
 -
--        BrowserWindow* const browser_window = candidate->window();
+-        BrowserWindow* const browser_window =
+-            BrowserWindow::FromBrowser(candidate);
 -        if (!browser_window) {
 -          return true;
 -        }
@@ -129,7 +132,8 @@ index e650e818e8..065219faa7 100644
 -            return true;
 -          }
 -
--          BrowserWindow* const browser_window = candidate->window();
+-          BrowserWindow* const browser_window =
+-              BrowserWindow::FromBrowser(candidate);
 -          if (!browser_window) {
 -            return true;
 -          }
@@ -154,10 +158,10 @@ index e650e818e8..065219faa7 100644
  
  }  // namespace
 diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/views/frame/browser_view.cc
-index 1b6794ec58..a5c1ed69de 100644
+index ab77c657e9..d1a4f8fec5 100644
 --- a/chrome/browser/ui/views/frame/browser_view.cc
 +++ b/chrome/browser/ui/views/frame/browser_view.cc
-@@ -1736,6 +1736,20 @@ bool BrowserView::IsOnCurrentWorkspace() const {
+@@ -1731,6 +1731,20 @@ bool BrowserView::IsOnCurrentWorkspace() const {
    return gfx::IsWindowOnCurrentVirtualDesktop(
               native_win->GetHost()->GetAcceleratedWidget(),
               virtual_desktop_manager) != false;

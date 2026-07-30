@@ -1,4 +1,4 @@
-From 3cca06e85fb17762a004961a55ebc76a2b23fcb4 Mon Sep 17 00:00:00 2001
+From 93542e79d2f6c9c2afe41a84eca7cd928cd0f7ab Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Sat, 25 Jul 2026 06:02:51 +0200
 Subject: [PATCH] Make tab groups pinnable button show highlight
@@ -10,10 +10,10 @@ Subject: [PATCH] Make tab groups pinnable button show highlight
  3 files changed, 28 insertions(+)
 
 diff --git a/chrome/browser/ui/browser_actions.cc b/chrome/browser/ui/browser_actions.cc
-index 72a166fd6b..088a3c89bb 100644
+index 2b2a5dc254..95a7bdd0e7 100644
 --- a/chrome/browser/ui/browser_actions.cc
 +++ b/chrome/browser/ui/browser_actions.cc
-@@ -961,6 +961,7 @@ void BrowserActions::InitializeChromeMenuActions() {
+@@ -1033,6 +1033,7 @@ void BrowserActions::InitializeChromeMenuActions() {
                    return;
                  }
                  gfx::Rect anchor_bounds;
@@ -21,7 +21,7 @@ index 72a166fd6b..088a3c89bb 100644
                  auto* toolbar_button_provider =
                      bwi->GetBrowserForMigrationOnly()
                          ->GetBrowserView()
-@@ -974,15 +975,30 @@ void BrowserActions::InitializeChromeMenuActions() {
+@@ -1046,15 +1047,30 @@ void BrowserActions::InitializeChromeMenuActions() {
                              .GetIfView();
                      if (anchor_view) {
                        anchor_bounds = anchor_view->GetBoundsInScreen();
@@ -53,10 +53,10 @@ index 72a166fd6b..088a3c89bb 100644
                },
                base::Unretained(this), bwi))
 diff --git a/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc b/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc
-index 88d411dae3..dd6ef1d945 100644
+index 1a2911b7cf..68c9d06c12 100644
 --- a/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc
 +++ b/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc
-@@ -433,8 +433,15 @@ void STGEverythingMenu::WillShowMenu(views::MenuItemView* menu) {
+@@ -434,8 +434,15 @@ void STGEverythingMenu::WillShowMenu(views::MenuItemView* menu) {
    }
  }
  

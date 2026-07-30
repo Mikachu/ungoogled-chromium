@@ -1,4 +1,4 @@
-From d9d40999fa12ad956b8b113d2f5640c72deef454 Mon Sep 17 00:00:00 2001
+From 87b402d8d367412fb518d182e01c3db2b8fbdd50 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Tue, 23 Jun 2026 09:31:09 +0200
 Subject: [PATCH] potentially handle ctrl-u correctly
@@ -16,10 +16,10 @@ Subject: [PATCH] potentially handle ctrl-u correctly
  9 files changed, 65 insertions(+), 7 deletions(-)
 
 diff --git a/chrome/browser/ui/accelerator_table.cc b/chrome/browser/ui/accelerator_table.cc
-index 51837acdf5..c602f35bf8 100644
+index 847093f9bb..2b14f538c6 100644
 --- a/chrome/browser/ui/accelerator_table.cc
 +++ b/chrome/browser/ui/accelerator_table.cc
-@@ -278,7 +278,8 @@ const AcceleratorMapping kDevToolsAcceleratorMap[] = {
+@@ -280,7 +280,8 @@ const AcceleratorMapping kDevToolsAcceleratorMap[] = {
       IDC_DEV_TOOLS_CONSOLE},
      {ui::VKEY_C, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN,
       IDC_DEV_TOOLS_INSPECT},
@@ -29,7 +29,7 @@ index 51837acdf5..c602f35bf8 100644
  #endif  // !BUILDFLAG(IS_MAC)
  };
  
-@@ -317,8 +318,9 @@ std::vector<AcceleratorMapping> GetAcceleratorList() {
+@@ -319,8 +320,9 @@ std::vector<AcceleratorMapping> GetAcceleratorList() {
                           std::end(kDevToolsAcceleratorMap));
  
  #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_LINUX)
@@ -42,10 +42,10 @@ index 51837acdf5..c602f35bf8 100644
      accelerators->emplace_back(
          AcceleratorMapping({ui::VKEY_N, ui::EF_CONTROL_DOWN | ui::EF_ALT_DOWN,
 diff --git a/content/browser/renderer_host/render_widget_host_view_aura.cc b/content/browser/renderer_host/render_widget_host_view_aura.cc
-index 1dddae6e47..725effc4ee 100644
+index fb30dd63b4..ff81e88eb0 100644
 --- a/content/browser/renderer_host/render_widget_host_view_aura.cc
 +++ b/content/browser/renderer_host/render_widget_host_view_aura.cc
-@@ -3329,10 +3329,27 @@ void RenderWidgetHostViewAura::ForwardKeyboardEventWithLatencyInfo(
+@@ -3350,10 +3350,27 @@ void RenderWidgetHostViewAura::ForwardKeyboardEventWithLatencyInfo(
      return;
  
  #if BUILDFLAG(IS_LINUX)
@@ -78,12 +78,12 @@ index 1dddae6e47..725effc4ee 100644
        // Transform from ui/ types to content/ types.
        std::vector<blink::mojom::EditCommandPtr> commands;
 diff --git a/third_party/blink/renderer/core/editing/commands/editing_command_type.h b/third_party/blink/renderer/core/editing/commands/editing_command_type.h
-index a65184fcb5..2695fa748e 100644
+index cb511e0b88..0e19247d7a 100644
 --- a/third_party/blink/renderer/core/editing/commands/editing_command_type.h
 +++ b/third_party/blink/renderer/core/editing/commands/editing_command_type.h
 @@ -158,6 +158,8 @@ enum class EditingCommandType {
    // tenor.com).
-   kPasteFromImageURL = 140,
+   kPasteFromImageUrl = 140,
  
 +  kDeleteWholeLine = 141,
 +
@@ -91,7 +91,7 @@ index a65184fcb5..2695fa748e 100644
    kNumberOfCommandTypes,
  
 diff --git a/third_party/blink/renderer/core/editing/commands/editor_command.cc b/third_party/blink/renderer/core/editing/commands/editor_command.cc
-index 5681fc4eec..b58a523e9e 100644
+index d52ed494d8..d42b6ac322 100644
 --- a/third_party/blink/renderer/core/editing/commands/editor_command.cc
 +++ b/third_party/blink/renderer/core/editing/commands/editor_command.cc
 @@ -193,6 +193,8 @@ InputEvent::InputType InputTypeFromCommandType(EditingCommandType command_type,
@@ -121,7 +121,7 @@ index 5681fc4eec..b58a523e9e 100644
                                        Event*,
                                        EditorCommandSource,
 @@ -1993,6 +2005,9 @@ static const EditorInternalCommand* InternalCommand(
-        ClipboardCommands::ExecutePasteFromImageURL,
+        ClipboardCommands::ExecutePasteFromImageUrl,
         SupportedFromMenuOrKeyBinding, EnabledInEditableText, StateNone,
         ValueStateOrNull, kNotTextInsertion, CanNotExecuteWhenDisabled},
 +      {EditingCommandType::kDeleteWholeLine, ExecuteDeleteWholeLine,
@@ -131,7 +131,7 @@ index 5681fc4eec..b58a523e9e 100644
    // Handles all commands except EditingCommandType::Invalid.
    static_assert(
 diff --git a/third_party/blink/renderer/core/editing/commands/editor_command_names.h b/third_party/blink/renderer/core/editing/commands/editor_command_names.h
-index 4accf04ffb..8e3078a8c2 100644
+index abca209a6d..5f39423bc4 100644
 --- a/third_party/blink/renderer/core/editing/commands/editor_command_names.h
 +++ b/third_party/blink/renderer/core/editing/commands/editor_command_names.h
 @@ -30,6 +30,7 @@ namespace blink {

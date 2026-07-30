@@ -1,4 +1,4 @@
-From 1d96afd223e1000aaa9e3246384d888754b6584b Mon Sep 17 00:00:00 2001
+From 317e8d0b32630650a0d01844aa8e8ba965e232c8 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Sun, 21 Jun 2026 16:17:35 +0200
 Subject: [PATCH] Use gtk file dialogs even without full gtk ui
@@ -89,7 +89,7 @@ index 714cb4ec5c..02ffc020d5 100644
    std::string ui_toolkit = base::ToLowerASCII(
        cmd_line->GetSwitchValueASCII(switches::kUiToolkitFlag));
 diff --git a/ui/shell_dialogs/BUILD.gn b/ui/shell_dialogs/BUILD.gn
-index 819b8e5153..4535b4647c 100644
+index 8de23c6560..af3a41b5f5 100644
 --- a/ui/shell_dialogs/BUILD.gn
 +++ b/ui/shell_dialogs/BUILD.gn
 @@ -57,6 +57,7 @@ component("shell_dialogs") {

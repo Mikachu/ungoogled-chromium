@@ -1,4 +1,4 @@
-From 02d161caecd617ef1605efc4a71788ebb6a946f4 Mon Sep 17 00:00:00 2001
+From d523a8e188aaa79ffad4053e91ad8555d2d9418f Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Fri, 26 Jun 2026 19:21:03 +0200
 Subject: [PATCH] fix the omnibox dropdown
@@ -17,10 +17,10 @@ Subject: [PATCH] fix the omnibox dropdown
  delete mode 100644 chrome/browser/ui/views/omnibox/omnibox_mouse_enter_exit_handler.h
 
 diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
-index 8e3d986248..5db5205964 100644
+index 017a8c3ff7..b9ad4b2cae 100644
 --- a/chrome/browser/ui/BUILD.gn
 +++ b/chrome/browser/ui/BUILD.gn
-@@ -4088,8 +4088,6 @@ static_library("ui") {
+@@ -4122,8 +4122,6 @@ static_library("ui") {
        "views/omnibox/omnibox_local_answer_header_view.h",
        "views/omnibox/omnibox_match_cell_view.cc",
        "views/omnibox/omnibox_match_cell_view.h",
@@ -135,7 +135,7 @@ index b75d7e8db2..0000000000
 -
 -#endif  // CHROME_BROWSER_UI_VIEWS_OMNIBOX_OMNIBOX_MOUSE_ENTER_EXIT_HANDLER_H_
 diff --git a/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.cc b/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.cc
-index 973f59db0d..e8ae3c6c03 100644
+index 42d3ae540c..71380207b1 100644
 --- a/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.cc
 +++ b/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.cc
 @@ -42,6 +42,8 @@
@@ -226,7 +226,7 @@ index 973f59db0d..e8ae3c6c03 100644
        if (!widget_->ShouldHandleNativeWidgetActivationChanged(false)) {
          return;
 diff --git a/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.h b/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.h
-index b355ee05a0..52a227f5d0 100644
+index b7478f61ce..54c4803443 100644
 --- a/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.h
 +++ b/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.h
 @@ -82,6 +82,7 @@ class OmniboxPopupViewViews : public views::View,

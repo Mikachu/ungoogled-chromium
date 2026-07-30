@@ -1,4 +1,4 @@
-From 7a06f81bf643321a9f936075669e8bf1b17435d5 Mon Sep 17 00:00:00 2001
+From 6d787d634bb617e4183293af437fc935b8c1ff6f Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Wed, 1 Jul 2026 17:40:00 +0200
 Subject: [PATCH] fix backspace in location entry
@@ -8,10 +8,10 @@ Subject: [PATCH] fix backspace in location entry
  1 file changed, 12 insertions(+)
 
 diff --git a/chrome/browser/ui/views/omnibox/omnibox_view_views.cc b/chrome/browser/ui/views/omnibox/omnibox_view_views.cc
-index c6cd2498ea..3b0b2798df 100644
+index 46cc4d9111..449b6b87be 100644
 --- a/chrome/browser/ui/views/omnibox/omnibox_view_views.cc
 +++ b/chrome/browser/ui/views/omnibox/omnibox_view_views.cc
-@@ -2248,6 +2248,18 @@ bool OmniboxViewViews::HandleKeyEvent(views::Textfield* textfield,
+@@ -2245,6 +2245,18 @@ bool OmniboxViewViews::HandleKeyEvent(views::Textfield* textfield,
        break;
  
      case ui::VKEY_BACK:
