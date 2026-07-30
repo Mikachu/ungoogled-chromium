@@ -121,3 +121,4 @@ extra/mikachu/0001-Fix-shift-insert.patch
 extra/mikachu/0001-Fix-reading-saved-app-window-placements.patch
 extra/mikachu/0001-Add-tab-groups-pinnable-button-to-toolbar.patch
 extra/mikachu/0001-Make-tab-groups-pinnable-button-show-highlight.patch
+extra/mikachu/0001-fix-build.patch
