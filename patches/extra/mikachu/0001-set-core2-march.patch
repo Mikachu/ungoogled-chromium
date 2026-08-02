@@ -1,0 +1,25 @@
+From 761cefe8c8c39c47a54cfd305847783563bea7ee Mon Sep 17 00:00:00 2001
+From: Mikael Magnusson <mikachu@gmail.com>
+Date: Sun, 2 Aug 2026 06:59:39 +0200
+Subject: [PATCH] set core2 march
+
+---
+ build/config/compiler_cpu_abi.gn | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/build/config/compiler_cpu_abi.gn b/build/config/compiler_cpu_abi.gn
+index ae62bab587..93c427c005 100644
+--- a/build/config/compiler_cpu_abi.gn
++++ b/build/config/compiler_cpu_abi.gn
+@@ -55,7 +55,7 @@ if ((is_posix && !is_apple) || is_fuchsia) {
+       cpu_abi_cflags += [ "-m64" ]
+       cpu_abi_ldflags += [ "-m64" ]
+     }
+-    cpu_abi_cflags += [ "-msse3" ]
++    cpu_abi_cflags += [ "-march=core2" ]
+     if (target_os == "chromeos" && cros_target_cpu_arch != "" &&
+         is_a_target_toolchain) {
+       cpu_abi_cflags += [ "-march=$cros_target_cpu_arch" ]
+-- 
+2.38.1
+
