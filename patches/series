@@ -109,6 +109,7 @@ extra/ungoogled-chromium/disable-ai-search-shortcuts.patch
 extra/ungoogled-chromium/disable-fedcm-by-default.patch
 extra/ungoogled-chromium/bundle-hyphenation-patterns.patch
 extra/ungoogled-chromium/add-flag-for-disabling-jit.patch
+extra/ungoogled-chromium/add-flag-to-force-reduced-motion.patch
 extra/mikachu/0001-Remove-position-setting-code.patch
 extra/mikachu/0001-fix-deleting-and-editing-text.patch
 extra/mikachu/0001-A-more-reasonable-compose.patch
