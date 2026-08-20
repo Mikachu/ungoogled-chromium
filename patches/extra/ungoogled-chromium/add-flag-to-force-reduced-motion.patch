@@ -1,0 +1,29 @@
+--- a/chrome/browser/ungoogled_flag_choices.h
++++ b/chrome/browser/ungoogled_flag_choices.h
+@@ -79,6 +79,15 @@ const FeatureEntry::Choice kTabHoverCard
+      "tab-hover-cards",
+      "tooltip"},
+ };
++const FeatureEntry::Choice kForceReducedMotion[] = {
++    {flags_ui::kGenericExperimentChoiceDefault, "", ""},
++    {"Force reduced motion",
++     "force-prefers-reduced-motion",
++     ""},
++    {"Force no reduced motion",
++     "force-prefers-no-reduced-motion",
++     ""},
++};
+ const FeatureEntry::FeatureParam kSpoofWebGL_Blank[] = {
+     {blink::features::kSpoofWebGLRenderer, " "},
+     {blink::features::kSpoofWebGLVendor, " "},
+--- a/chrome/browser/ungoogled_flag_entries.h
++++ b/chrome/browser/ungoogled_flag_entries.h
+@@ -144,4 +144,8 @@
+      "Disabling JavaScript optimization disables JIT",
+      "If enabled, disables JIT too if the \"JavaScript optimization\" setting is turned off. ungoogled-chromium flag.",
+      kOsAll, SINGLE_VALUE_TYPE("disabling-javascript-optimization-disables-jit")},
++    {"force-reduced-motion",
++     "Force reduced motion",
++     "Forces whether the user desires reduced motion, regardless of system settings. ungoogled-chromium flag.",
++     kOsAll, MULTI_VALUE_TYPE(kForceReducedMotion)},
+ #endif  // CHROME_BROWSER_UNGOOGLED_FLAG_ENTRIES_H_
