@@ -1,4 +1,4 @@
-From 87b402d8d367412fb518d182e01c3db2b8fbdd50 Mon Sep 17 00:00:00 2001
+From 1b75302cd1644a459f2731914802e09e8758586b Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Tue, 23 Jun 2026 09:31:09 +0200
 Subject: [PATCH] potentially handle ctrl-u correctly
@@ -16,7 +16,7 @@ Subject: [PATCH] potentially handle ctrl-u correctly
  9 files changed, 65 insertions(+), 7 deletions(-)
 
 diff --git a/chrome/browser/ui/accelerator_table.cc b/chrome/browser/ui/accelerator_table.cc
-index 847093f9bb..2b14f538c6 100644
+index 532ec4748b..276628b127 100644
 --- a/chrome/browser/ui/accelerator_table.cc
 +++ b/chrome/browser/ui/accelerator_table.cc
 @@ -280,7 +280,8 @@ const AcceleratorMapping kDevToolsAcceleratorMap[] = {
@@ -29,7 +29,7 @@ index 847093f9bb..2b14f538c6 100644
  #endif  // !BUILDFLAG(IS_MAC)
  };
  
-@@ -319,8 +320,9 @@ std::vector<AcceleratorMapping> GetAcceleratorList() {
+@@ -322,8 +323,9 @@ std::vector<AcceleratorMapping> GetAcceleratorList() {
                           std::end(kDevToolsAcceleratorMap));
  
  #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_LINUX)
@@ -42,10 +42,10 @@ index 847093f9bb..2b14f538c6 100644
      accelerators->emplace_back(
          AcceleratorMapping({ui::VKEY_N, ui::EF_CONTROL_DOWN | ui::EF_ALT_DOWN,
 diff --git a/content/browser/renderer_host/render_widget_host_view_aura.cc b/content/browser/renderer_host/render_widget_host_view_aura.cc
-index fb30dd63b4..ff81e88eb0 100644
+index 9aff51cf64..a9b3612306 100644
 --- a/content/browser/renderer_host/render_widget_host_view_aura.cc
 +++ b/content/browser/renderer_host/render_widget_host_view_aura.cc
-@@ -3350,10 +3350,27 @@ void RenderWidgetHostViewAura::ForwardKeyboardEventWithLatencyInfo(
+@@ -3379,10 +3379,27 @@ void RenderWidgetHostViewAura::ForwardKeyboardEventWithLatencyInfo(
      return;
  
  #if BUILDFLAG(IS_LINUX)
@@ -180,7 +180,7 @@ index 2e05820feb..d2712856ba 100644
  TEXT_EDIT_COMMAND(DELETE_TO_BEGINNING_OF_PARAGRAPH, \
    kDeleteToBeginningOfParagraph)
 diff --git a/ui/views/controls/textfield/textfield.cc b/ui/views/controls/textfield/textfield.cc
-index e672ba29b4..1a7a4064a5 100644
+index a1a4190147..118d493a11 100644
 --- a/ui/views/controls/textfield/textfield.cc
 +++ b/ui/views/controls/textfield/textfield.cc
 @@ -1019,6 +1019,11 @@ bool Textfield::SkipDefaultKeyEventProcessing(const ui::KeyEvent& event) {
@@ -195,7 +195,7 @@ index e672ba29b4..1a7a4064a5 100644
  #endif
  
    // Skip backspace accelerator handling; editable textfields handle this key.
-@@ -2019,6 +2024,7 @@ bool Textfield::IsTextEditCommandEnabled(ui::TextEditCommand command) const {
+@@ -2030,6 +2035,7 @@ bool Textfield::IsTextEditCommandEnabled(ui::TextEditCommand command) const {
    switch (command) {
      case ui::TextEditCommand::DELETE_BACKWARD:
      case ui::TextEditCommand::DELETE_FORWARD:
@@ -203,7 +203,7 @@ index e672ba29b4..1a7a4064a5 100644
      case ui::TextEditCommand::DELETE_TO_BEGINNING_OF_LINE:
      case ui::TextEditCommand::DELETE_TO_BEGINNING_OF_PARAGRAPH:
      case ui::TextEditCommand::DELETE_TO_END_OF_LINE:
-@@ -2282,6 +2288,9 @@ void Textfield::DoExecuteTextEditCommand(
+@@ -2293,6 +2299,9 @@ void Textfield::DoExecuteTextEditCommand(
          command = ui::TextEditCommand::DELETE_FORWARD;
        }
        break;
@@ -213,7 +213,7 @@ index e672ba29b4..1a7a4064a5 100644
  
      // Handle async PASTE separately to avoid splitting On[Before]UserAction
      // across async boundaries.
-@@ -2305,6 +2314,11 @@ void Textfield::DoExecuteTextEditCommand(
+@@ -2316,6 +2325,11 @@ void Textfield::DoExecuteTextEditCommand(
      case ui::TextEditCommand::DELETE_FORWARD:
        changed = cursor_changed = model_->Delete(add_to_kill_buffer);
        break;
@@ -225,7 +225,7 @@ index e672ba29b4..1a7a4064a5 100644
      case ui::TextEditCommand::DELETE_TO_BEGINNING_OF_LINE:
        model_->MoveCursor(gfx::LINE_BREAK, begin, gfx::SELECTION_RETAIN);
        changed = cursor_changed = model_->Backspace(add_to_kill_buffer);
-@@ -2576,6 +2590,9 @@ ui::TextEditCommand Textfield::GetCommandForKeyEvent(
+@@ -2587,6 +2601,9 @@ ui::TextEditCommand Textfield::GetCommandForKeyEvent(
      case ui::VKEY_V:
        return (control && !alt) ? ui::TextEditCommand::PASTE
                                 : ui::TextEditCommand::INVALID_COMMAND;

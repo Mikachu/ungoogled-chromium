@@ -1,4 +1,4 @@
-From b70f0bef4f97dd187ee55ac5834ca322e7f9ff62 Mon Sep 17 00:00:00 2001
+From 5e6ff792fc3b8a2da41df7e1bfe70d10e6b4b5be Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Wed, 1 Jul 2026 18:16:06 +0200
 Subject: [PATCH] Fix shift-insert
@@ -10,10 +10,10 @@ Subject: [PATCH] Fix shift-insert
  3 files changed, 13 insertions(+), 2 deletions(-)
 
 diff --git a/chrome/browser/ui/views/omnibox/omnibox_view_views.cc b/chrome/browser/ui/views/omnibox/omnibox_view_views.cc
-index 449b6b87be..411022a337 100644
+index 8338a114e3..2aefaa63b9 100644
 --- a/chrome/browser/ui/views/omnibox/omnibox_view_views.cc
 +++ b/chrome/browser/ui/views/omnibox/omnibox_view_views.cc
-@@ -2238,8 +2238,8 @@ bool OmniboxViewViews::HandleKeyEvent(views::Textfield* textfield,
+@@ -2043,8 +2043,8 @@ bool OmniboxViewViews::HandleKeyEvent(views::Textfield* textfield,
  
      case ui::VKEY_INSERT:
        if (shift && !control &&
@@ -41,7 +41,7 @@ index c152217927..78d21782ee 100644
  #if !BUILDFLAG(IS_MAC)
      // On OS X, we pipe these back to the browser, so that it can do menu item
 diff --git a/ui/views/controls/textfield/textfield.cc b/ui/views/controls/textfield/textfield.cc
-index 1a7a4064a5..255773cbd9 100644
+index 118d493a11..dcadab1ea2 100644
 --- a/ui/views/controls/textfield/textfield.cc
 +++ b/ui/views/controls/textfield/textfield.cc
 @@ -838,6 +838,13 @@ bool Textfield::OnKeyPressed(const ui::KeyEvent& event) {

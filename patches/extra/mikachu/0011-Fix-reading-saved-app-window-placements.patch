@@ -1,4 +1,4 @@
-From 01e2f007bb96ac422898bb50119db91f0519847d Mon Sep 17 00:00:00 2001
+From 96d0e4719269c577ce92b970c51392db2f0dab15 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Fri, 24 Jul 2026 01:07:08 +0200
 Subject: [PATCH] Fix reading saved app window placements
@@ -9,7 +9,7 @@ It was saved split by dots, but read back literally. Save them literally too.
  1 file changed, 1 insertion(+), 8 deletions(-)
 
 diff --git a/chrome/browser/ui/browser_window_state.cc b/chrome/browser/ui/browser_window_state.cc
-index 504afd4e8f..930acc95b7 100644
+index f7e677d51d..e08ef13ca0 100644
 --- a/chrome/browser/ui/browser_window_state.cc
 +++ b/chrome/browser/ui/browser_window_state.cc
 @@ -77,14 +77,7 @@ base::DictValue& GetWindowPlacementDictionaryReadWrite(

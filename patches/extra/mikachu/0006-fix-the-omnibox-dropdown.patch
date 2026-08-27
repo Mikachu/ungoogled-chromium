@@ -1,10 +1,10 @@
-From d523a8e188aaa79ffad4053e91ad8555d2d9418f Mon Sep 17 00:00:00 2001
+From cce430e36611f86a428dc46084f5329626e224eb Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Fri, 26 Jun 2026 19:21:03 +0200
 Subject: [PATCH] fix the omnibox dropdown
 
 ---
- chrome/browser/ui/BUILD.gn                    |  2 -
+ chrome/browser/ui/views/omnibox/BUILD.gn      |  2 -
  .../ui/views/omnibox/omnibox_header_view.h    |  1 -
  .../omnibox_mouse_enter_exit_handler.cc       | 30 -----------
  .../omnibox_mouse_enter_exit_handler.h        | 51 -------------------
@@ -16,19 +16,26 @@ Subject: [PATCH] fix the omnibox dropdown
  delete mode 100644 chrome/browser/ui/views/omnibox/omnibox_mouse_enter_exit_handler.cc
  delete mode 100644 chrome/browser/ui/views/omnibox/omnibox_mouse_enter_exit_handler.h
 
-diff --git a/chrome/browser/ui/BUILD.gn b/chrome/browser/ui/BUILD.gn
-index 017a8c3ff7..b9ad4b2cae 100644
---- a/chrome/browser/ui/BUILD.gn
-+++ b/chrome/browser/ui/BUILD.gn
-@@ -4122,8 +4122,6 @@ static_library("ui") {
-       "views/omnibox/omnibox_local_answer_header_view.h",
-       "views/omnibox/omnibox_match_cell_view.cc",
-       "views/omnibox/omnibox_match_cell_view.h",
--      "views/omnibox/omnibox_mouse_enter_exit_handler.cc",
--      "views/omnibox/omnibox_mouse_enter_exit_handler.h",
-       "views/omnibox/omnibox_popup_aim_presenter.cc",
-       "views/omnibox/omnibox_popup_aim_presenter.h",
-       "views/omnibox/omnibox_popup_closer.cc",
+diff --git a/chrome/browser/ui/views/omnibox/BUILD.gn b/chrome/browser/ui/views/omnibox/BUILD.gn
+index 501ac5f173..5d60a45cdb 100644
+--- a/chrome/browser/ui/views/omnibox/BUILD.gn
++++ b/chrome/browser/ui/views/omnibox/BUILD.gn
+@@ -16,7 +16,6 @@ source_set("omnibox") {
+     "omnibox_header_view.h",
+     "omnibox_local_answer_header_view.h",
+     "omnibox_match_cell_view.h",
+-    "omnibox_mouse_enter_exit_handler.h",
+     "omnibox_placeholder_util.h",
+     "omnibox_popup_aim_presenter.h",
+     "omnibox_popup_closer.h",
+@@ -87,7 +86,6 @@ source_set("impl") {
+     "omnibox_header_view.cc",
+     "omnibox_local_answer_header_view.cc",
+     "omnibox_match_cell_view.cc",
+-    "omnibox_mouse_enter_exit_handler.cc",
+     "omnibox_placeholder_util.cc",
+     "omnibox_popup_aim_presenter.cc",
+     "omnibox_popup_closer.cc",
 diff --git a/chrome/browser/ui/views/omnibox/omnibox_header_view.h b/chrome/browser/ui/views/omnibox/omnibox_header_view.h
 index 5c1a599251..eb5f21d339 100644
 --- a/chrome/browser/ui/views/omnibox/omnibox_header_view.h
@@ -135,10 +142,10 @@ index b75d7e8db2..0000000000
 -
 -#endif  // CHROME_BROWSER_UI_VIEWS_OMNIBOX_OMNIBOX_MOUSE_ENTER_EXIT_HANDLER_H_
 diff --git a/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.cc b/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.cc
-index 42d3ae540c..71380207b1 100644
+index f41d20c50d..7a59ecfd02 100644
 --- a/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.cc
 +++ b/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.cc
-@@ -42,6 +42,8 @@
+@@ -40,6 +40,8 @@
  #include "ui/compositor/closure_animation_observer.h"
  #include "ui/compositor/layer.h"
  #include "ui/compositor/scoped_layer_animation_settings.h"
@@ -147,7 +154,7 @@ index 42d3ae540c..71380207b1 100644
  #include "ui/gfx/image/image.h"
  #include "ui/views/accessibility/view_accessibility.h"
  #include "ui/views/cascading_property.h"
-@@ -257,6 +259,23 @@ void OmniboxPopupViewViews::WidgetObserverHelper::OnWidgetDestroying(
+@@ -255,6 +257,23 @@ void OmniboxPopupViewViews::WidgetObserverHelper::OnWidgetDestroying(
    popup_view_->OnWidgetDestroying(widget);
  }
  
@@ -171,7 +178,7 @@ index 42d3ae540c..71380207b1 100644
  OmniboxPopupViewViews::OmniboxPopupViewViews(OmniboxViewViews* omnibox_view,
                                               OmniboxController* controller,
                                               LocationBarView* location_bar_view)
-@@ -277,6 +296,11 @@ OmniboxPopupViewViews::OmniboxPopupViewViews(OmniboxViewViews* omnibox_view,
+@@ -275,6 +294,11 @@ OmniboxPopupViewViews::OmniboxPopupViewViews(OmniboxViewViews* omnibox_view,
    SetLayoutManager(std::make_unique<views::BoxLayout>(
        views::BoxLayout::Orientation::kVertical));
  
@@ -183,7 +190,7 @@ index 42d3ae540c..71380207b1 100644
    GetViewAccessibility().SetRole(ax::mojom::Role::kListBox);
    UpdateAccessibleStates();
    UpdateAccessibleControlIds();
-@@ -284,6 +308,7 @@ OmniboxPopupViewViews::OmniboxPopupViewViews(OmniboxViewViews* omnibox_view,
+@@ -282,6 +306,7 @@ OmniboxPopupViewViews::OmniboxPopupViewViews(OmniboxViewViews* omnibox_view,
  }
  
  OmniboxPopupViewViews::~OmniboxPopupViewViews() {
@@ -191,7 +198,7 @@ index 42d3ae540c..71380207b1 100644
    // We don't need to close or delete `widget_` here. The OS either has already
    // closed the window, in which case it's been deleted, or it will soon.
    if (widget_) {
-@@ -294,6 +319,25 @@ OmniboxPopupViewViews::~OmniboxPopupViewViews() {
+@@ -292,6 +317,25 @@ OmniboxPopupViewViews::~OmniboxPopupViewViews() {
    UpdateAccessibleControlIds();
  }
  
@@ -217,7 +224,7 @@ index 42d3ae540c..71380207b1 100644
  gfx::Image OmniboxPopupViewViews::GetMatchIcon(
      const AutocompleteMatch& match,
      SkColor vector_icon_color) const {
-@@ -355,6 +399,7 @@ void OmniboxPopupViewViews::UpdatePopupAppearance() {
+@@ -353,6 +397,7 @@ void OmniboxPopupViewViews::UpdatePopupAppearance() {
  
    if (!should_be_open) {
      if (was_open) {
@@ -226,7 +233,7 @@ index 42d3ae540c..71380207b1 100644
        if (!widget_->ShouldHandleNativeWidgetActivationChanged(false)) {
          return;
 diff --git a/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.h b/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.h
-index b7478f61ce..54c4803443 100644
+index f8698d2934..72a99c43b8 100644
 --- a/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.h
 +++ b/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.h
 @@ -82,6 +82,7 @@ class OmniboxPopupViewViews : public views::View,
@@ -237,7 +244,7 @@ index b7478f61ce..54c4803443 100644
  
    // views::WidgetObserver:
    void OnWidgetBoundsChanged(views::Widget* widget,
-@@ -135,6 +136,18 @@ class OmniboxPopupViewViews : public views::View,
+@@ -134,6 +135,18 @@ class OmniboxPopupViewViews : public views::View,
    size_t GetIndexForPoint(const gfx::Point& point) const;
  
   private:
@@ -256,7 +263,7 @@ index b7478f61ce..54c4803443 100644
    // Classes shouldn't observe multiple objects (to avoid inheriting
    // `base::CheckedObserver` twice). Since `OmniboxPopupViewViews` already
    // observes `OmniboxEditModel`, it needs `WidgetObserverHelper` to observe
-@@ -161,6 +174,8 @@ class OmniboxPopupViewViews : public views::View,
+@@ -160,6 +173,8 @@ class OmniboxPopupViewViews : public views::View,
  
    void UpdateAccessibleActiveDescendantForInvokingView();
  
@@ -265,7 +272,7 @@ index b7478f61ce..54c4803443 100644
    // Updates a row view with the given match data. `previous_row_header` should
    // be supplied with the header value for the previous match in order to detect
    // when the header changes and needs to be displayed. Returns the current
-@@ -209,6 +224,11 @@ class OmniboxPopupViewViews : public views::View,
+@@ -208,6 +223,11 @@ class OmniboxPopupViewViews : public views::View,
    // Used to observe `views::Widget`. Manual (i.e. unscoped) observation because
    // widgets get created and destroyed during `OmniboxPopupViewViews` lifetime.
    WidgetObserverHelper widget_observer_helper_{this};
@@ -278,10 +285,10 @@ index b7478f61ce..54c4803443 100644
    base::ScopedObservation<OmniboxEditModel, OmniboxEditModel::Observer>
        edit_model_observation_{this};
 diff --git a/chrome/browser/ui/views/omnibox/omnibox_result_view.cc b/chrome/browser/ui/views/omnibox/omnibox_result_view.cc
-index d29abdc792..646be46679 100644
+index 4adefc3bc6..0f0e3bcb3f 100644
 --- a/chrome/browser/ui/views/omnibox/omnibox_result_view.cc
 +++ b/chrome/browser/ui/views/omnibox/omnibox_result_view.cc
-@@ -165,11 +165,7 @@ END_METADATA
+@@ -151,11 +151,7 @@ END_METADATA
  OmniboxResultView::OmniboxResultView(OmniboxPopupViewViews* popup_view,
                                       size_t model_index)
      : popup_view_(popup_view),
@@ -294,7 +301,7 @@ index d29abdc792..646be46679 100644
    CHECK_GE(model_index, 0u);
  
    // The view hierarchy is:
-@@ -324,13 +320,19 @@ OmniboxResultView::OmniboxResultView(OmniboxPopupViewViews* popup_view,
+@@ -310,13 +306,19 @@ OmniboxResultView::OmniboxResultView(OmniboxPopupViewViews* popup_view,
                                 views::MaximumFlexSizeRule::kPreferred)
            .WithOrder(1));
  
@@ -316,7 +323,7 @@ index d29abdc792..646be46679 100644
  OmniboxResultView::~OmniboxResultView() = default;
  
  // static
-@@ -585,8 +587,8 @@ OmniboxPartState OmniboxResultView::GetThemeState() const {
+@@ -571,8 +573,8 @@ OmniboxPartState OmniboxResultView::GetThemeState() const {
  
    // If we don't highlight the whole row when the user has the mouse over the
    // remove suggestion button, it's unclear which suggestion is being removed.
@@ -327,7 +334,7 @@ index d29abdc792..646be46679 100644
  }
  
  void OmniboxResultView::OnMatchIconUpdated() {
-@@ -657,14 +659,6 @@ void OmniboxResultView::OnMouseReleased(const ui::MouseEvent& event) {
+@@ -643,14 +645,6 @@ void OmniboxResultView::OnMouseReleased(const ui::MouseEvent& event) {
    }
  }
  
@@ -342,7 +349,7 @@ index d29abdc792..646be46679 100644
  void OmniboxResultView::OnThemeChanged() {
    views::View::OnThemeChanged();
    ApplyThemeAndRefreshIcons(/*force_reapply_styles=*/true);
-@@ -709,7 +703,7 @@ void OmniboxResultView::UpdateHoverState() {
+@@ -695,7 +689,7 @@ void OmniboxResultView::UpdateHoverState() {
    UpdateFeedbackButtonsVisibility();
    UpdateRemoveSuggestionVisibility();
    ApplyThemeAndRefreshIcons();
@@ -351,7 +358,7 @@ index d29abdc792..646be46679 100644
  }
  
  void OmniboxResultView::UpdateDividerLineVisibility() {
-@@ -727,7 +721,7 @@ void OmniboxResultView::UpdateSecondaryTextVisibility() {
+@@ -713,7 +707,7 @@ void OmniboxResultView::UpdateSecondaryTextVisibility() {
    const bool is_contextual = match_.IsContextualSearchSuggestion();
  
    const bool show_description =
@@ -360,7 +367,7 @@ index d29abdc792..646be46679 100644
    if (suggestion_view_->description()->GetVisible() != show_description) {
      suggestion_view_->description()->SetVisible(show_description);
      suggestion_view_->separator()->SetVisible(show_description);
-@@ -743,7 +737,7 @@ void OmniboxResultView::UpdateFeedbackButtonsVisibility() {
+@@ -729,7 +723,7 @@ void OmniboxResultView::UpdateFeedbackButtonsVisibility() {
        popup_view_->controller()->edit_model()->IsPopupControlPresentOnMatch(
            OmniboxPopupSelection(
                model_index_, OmniboxPopupSelection::FOCUSED_BUTTON_THUMBS_UP)) &&
@@ -369,7 +376,7 @@ index d29abdc792..646be46679 100644
  
    // Same rules apply to both buttons.
    thumbs_up_button_->SetVisible(new_visibility);
-@@ -763,7 +757,7 @@ void OmniboxResultView::UpdateRemoveSuggestionVisibility() {
+@@ -749,7 +743,7 @@ void OmniboxResultView::UpdateRemoveSuggestionVisibility() {
            OmniboxPopupSelection(
                model_index_,
                OmniboxPopupSelection::FOCUSED_BUTTON_REMOVE_SUGGESTION)) &&

@@ -1,4 +1,4 @@
-From 317e8d0b32630650a0d01844aa8e8ba965e232c8 Mon Sep 17 00:00:00 2001
+From 25b0ef77e8ed18dec85a860f70d75182e4a6304b Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Sun, 21 Jun 2026 16:17:35 +0200
 Subject: [PATCH] Use gtk file dialogs even without full gtk ui

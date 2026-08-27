@@ -1,13 +1,13 @@
-From 72f9eccd8b87bc44680511242ee3328a6f0d0e5e Mon Sep 17 00:00:00 2001
+From 035fe343fbbd88b7b28b39ad4ca6823592968d91 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Wed, 1 Jul 2026 17:09:51 +0200
 Subject: [PATCH] Open new tabs in the right place
 
 ---
  .../internal/profile_browser_collection.cc    | 11 ++-
- .../startup/startup_browser_creator_impl.cc   | 84 +------------------
+ .../startup/startup_browser_creator_impl.cc   | 81 +------------------
  chrome/browser/ui/views/frame/browser_view.cc | 14 ++++
- 3 files changed, 28 insertions(+), 81 deletions(-)
+ 3 files changed, 28 insertions(+), 78 deletions(-)
 
 diff --git a/chrome/browser/ui/browser_window/internal/profile_browser_collection.cc b/chrome/browser/ui/browser_window/internal/profile_browser_collection.cc
 index 5329d73ade..a30d3d0aef 100644
@@ -39,7 +39,7 @@ index 5329d73ade..a30d3d0aef 100644
  }
  
 diff --git a/chrome/browser/ui/startup/startup_browser_creator_impl.cc b/chrome/browser/ui/startup/startup_browser_creator_impl.cc
-index a1d71b78b0..8f365271a7 100644
+index ee1fa51aa3..4bdd85051d 100644
 --- a/chrome/browser/ui/startup/startup_browser_creator_impl.cc
 +++ b/chrome/browser/ui/startup/startup_browser_creator_impl.cc
 @@ -40,7 +40,6 @@
@@ -50,18 +50,15 @@ index a1d71b78b0..8f365271a7 100644
  #include "chrome/browser/ui/navigator/browser_navigator.h"
  #include "chrome/browser/ui/navigator/browser_navigator_params.h"
  #include "chrome/browser/ui/startup/infobar_utils.h"
-@@ -67,10 +66,6 @@
- #include "content/public/common/content_switches.h"
- #include "url/origin.h"
+@@ -70,7 +69,6 @@
  
--#if BUILDFLAG(IS_LINUX)
+ #if BUILDFLAG(IS_LINUX)
+ #include "base/nix/xdg_util.h"
 -#include "ui/display/screen.h"
--#endif
--
+ #endif
+ 
  #if BUILDFLAG(IS_MAC)
- #include "base/mac/mac_util.h"
- #include "chrome/browser/app_controller_mac.h"
-@@ -85,9 +80,7 @@
+@@ -87,9 +85,7 @@
  #include "components/app_restore/full_restore_utils.h"
  #endif
  
@@ -71,7 +68,7 @@ index a1d71b78b0..8f365271a7 100644
  
  #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
  #include "chrome/browser/search_integrity/search_integrity.h"
-@@ -132,81 +125,12 @@ void PrependTabs(const StartupTabs& from, StartupTabs* to) {
+@@ -134,81 +130,12 @@ void PrependTabs(const StartupTabs& from, StartupTabs* to) {
  Browser* GetExistingBrowserForOpenBehavior(
      Profile* profile,
      chrome::startup::IsProcessStartup process_startup) {
@@ -158,10 +155,10 @@ index a1d71b78b0..8f365271a7 100644
  
  }  // namespace
 diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/views/frame/browser_view.cc
-index ab77c657e9..d1a4f8fec5 100644
+index 4b4697c297..febe8e9b8d 100644
 --- a/chrome/browser/ui/views/frame/browser_view.cc
 +++ b/chrome/browser/ui/views/frame/browser_view.cc
-@@ -1731,6 +1731,20 @@ bool BrowserView::IsOnCurrentWorkspace() const {
+@@ -1747,6 +1747,20 @@ bool BrowserView::IsOnCurrentWorkspace() const {
    return gfx::IsWindowOnCurrentVirtualDesktop(
               native_win->GetHost()->GetAcceleratedWidget(),
               virtual_desktop_manager) != false;
