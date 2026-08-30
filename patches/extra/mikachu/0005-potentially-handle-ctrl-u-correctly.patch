@@ -103,7 +103,7 @@ index d52ed494d8..d42b6ac322 100644
  
      // Command.
      case CommandType::kUndo:
-@@ -637,6 +639,16 @@ static bool ExecuteDeleteToMark(LocalFrame& frame,
+@@ -637,6 +639,20 @@ static bool ExecuteDeleteToMark(LocalFrame& frame,
    return true;
  }
  
@@ -111,16 +111,20 @@ index d52ed494d8..d42b6ac322 100644
 +                                   Event*,
 +                                   EditorCommandSource,
 +                                   const String&) {
-+  // Select the entire current line, then delete it (adding to kill ring).
-+  ExpandSelectionToGranularity(frame, TextGranularity::kLine);
-+  PerformDelete(frame);
++  frame.Selection().Modify(SelectionModifyAlteration::kMove,  
++                           SelectionModifyDirection::kForward,  
++                           TextGranularity::kLineBoundary,  
++                           SetSelectionBy::kSystem);  
++  DeleteWithDirection(frame, DeleteDirection::kBackward,  
++                      TextGranularity::kLineBoundary,  
++                      /*kill_ring=*/true, /*is_typing_action=*/false);  
 +  return true;
 +}
 +
  static bool ExecuteDeleteWordBackward(LocalFrame& frame,
                                        Event*,
                                        EditorCommandSource,
-@@ -1993,6 +2005,9 @@ static const EditorInternalCommand* InternalCommand(
+@@ -1993,6 +2009,9 @@ static const EditorInternalCommand* InternalCommand(
         ClipboardCommands::ExecutePasteFromImageUrl,
         SupportedFromMenuOrKeyBinding, EnabledInEditableText, StateNone,
         ValueStateOrNull, kNotTextInsertion, CanNotExecuteWhenDisabled},
