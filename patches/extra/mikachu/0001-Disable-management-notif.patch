@@ -1,0 +1,24 @@
+From 66e3334778713e221d14701707698a12a802d69f Mon Sep 17 00:00:00 2001
+From: Mikael Magnusson <mikachu@gmail.com>
+Date: Sat, 5 Sep 2026 18:12:40 +0200
+Subject: [PATCH] Disable management notif
+
+---
+ components/policy/core/common/management/management_service.cc | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/components/policy/core/common/management/management_service.cc b/components/policy/core/common/management/management_service.cc
+index 618d30f97a..6325dda690 100644
+--- a/components/policy/core/common/management/management_service.cc
++++ b/components/policy/core/common/management/management_service.cc
+@@ -241,6 +241,7 @@ int ManagementService::GetManagementAuthorities() {
+     return management_authorities_for_testing_.value();
+ 
+   int result = 0;
++  if (!result) { return EnterpriseManagementAuthority::NONE; }
+   for (const auto& provider : management_status_providers_)
+     result |= provider->GetAuthority();
+   return result;
+-- 
+2.38.1
+
