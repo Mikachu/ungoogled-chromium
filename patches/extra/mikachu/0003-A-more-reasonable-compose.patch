@@ -1,4 +1,4 @@
-From 58969a8f83791912d3fa966ac54403d0c68162e4 Mon Sep 17 00:00:00 2001
+From f2d7e53d177efbbb496659cf5bbef5b83c664f83 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Sun, 21 Jun 2026 00:50:09 +0200
 Subject: [PATCH] A more reasonable compose

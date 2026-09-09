@@ -1,4 +1,4 @@
-From 5e6ff792fc3b8a2da41df7e1bfe70d10e6b4b5be Mon Sep 17 00:00:00 2001
+From 088182e6eeb100f5c21c630c6331f45239742134 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Wed, 1 Jul 2026 18:16:06 +0200
 Subject: [PATCH] Fix shift-insert
@@ -10,10 +10,10 @@ Subject: [PATCH] Fix shift-insert
  3 files changed, 13 insertions(+), 2 deletions(-)
 
 diff --git a/chrome/browser/ui/views/omnibox/omnibox_view_views.cc b/chrome/browser/ui/views/omnibox/omnibox_view_views.cc
-index 8338a114e3..2aefaa63b9 100644
+index 0584211e14..efb52d52f8 100644
 --- a/chrome/browser/ui/views/omnibox/omnibox_view_views.cc
 +++ b/chrome/browser/ui/views/omnibox/omnibox_view_views.cc
-@@ -2043,8 +2043,8 @@ bool OmniboxViewViews::HandleKeyEvent(views::Textfield* textfield,
+@@ -2003,8 +2003,8 @@ bool OmniboxViewViews::HandleKeyEvent(views::Textfield* textfield,
  
      case ui::VKEY_INSERT:
        if (shift && !control &&
@@ -25,7 +25,7 @@ index 8338a114e3..2aefaa63b9 100644
        }
        break;
 diff --git a/third_party/blink/renderer/core/editing/editing_behavior.cc b/third_party/blink/renderer/core/editing/editing_behavior.cc
-index c152217927..78d21782ee 100644
+index f7c75030b9..6b53c525b9 100644
 --- a/third_party/blink/renderer/core/editing/editing_behavior.cc
 +++ b/third_party/blink/renderer/core/editing/editing_behavior.cc
 @@ -166,7 +166,11 @@ const KeyboardCodeKeyDownEntry kKeyboardCodeKeyDownEntries[] = {

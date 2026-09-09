@@ -1,4 +1,4 @@
-From 1b75302cd1644a459f2731914802e09e8758586b Mon Sep 17 00:00:00 2001
+From 13f7ce1c5b143560e71540c124364ac504fb957b Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Tue, 23 Jun 2026 09:31:09 +0200
 Subject: [PATCH] potentially handle ctrl-u correctly
@@ -7,13 +7,13 @@ Subject: [PATCH] potentially handle ctrl-u correctly
  chrome/browser/ui/accelerator_table.cc        |  8 +++---
  .../render_widget_host_view_aura.cc           | 25 ++++++++++++++++---
  .../editing/commands/editing_command_type.h   |  2 ++
- .../core/editing/commands/editor_command.cc   | 15 +++++++++++
+ .../core/editing/commands/editor_command.cc   | 19 ++++++++++++++
  .../editing/commands/editor_command_names.h   |  1 +
  .../ime/linux/text_edit_command_auralinux.cc  |  2 ++
  ui/base/ime/mojom/text_edit_commands.mojom    |  1 +
  ui/base/ime/text_edit_commands.inc            |  1 +
  ui/views/controls/textfield/textfield.cc      | 17 +++++++++++++
- 9 files changed, 65 insertions(+), 7 deletions(-)
+ 9 files changed, 69 insertions(+), 7 deletions(-)
 
 diff --git a/chrome/browser/ui/accelerator_table.cc b/chrome/browser/ui/accelerator_table.cc
 index 532ec4748b..276628b127 100644
@@ -42,10 +42,10 @@ index 532ec4748b..276628b127 100644
      accelerators->emplace_back(
          AcceleratorMapping({ui::VKEY_N, ui::EF_CONTROL_DOWN | ui::EF_ALT_DOWN,
 diff --git a/content/browser/renderer_host/render_widget_host_view_aura.cc b/content/browser/renderer_host/render_widget_host_view_aura.cc
-index 9aff51cf64..a9b3612306 100644
+index 18f19186a6..58d96f9d14 100644
 --- a/content/browser/renderer_host/render_widget_host_view_aura.cc
 +++ b/content/browser/renderer_host/render_widget_host_view_aura.cc
-@@ -3379,10 +3379,27 @@ void RenderWidgetHostViewAura::ForwardKeyboardEventWithLatencyInfo(
+@@ -3396,10 +3396,27 @@ void RenderWidgetHostViewAura::ForwardKeyboardEventWithLatencyInfo(
      return;
  
  #if BUILDFLAG(IS_LINUX)
@@ -91,10 +91,10 @@ index cb511e0b88..0e19247d7a 100644
    kNumberOfCommandTypes,
  
 diff --git a/third_party/blink/renderer/core/editing/commands/editor_command.cc b/third_party/blink/renderer/core/editing/commands/editor_command.cc
-index d52ed494d8..d42b6ac322 100644
+index 9ed26d0285..4578e6c3f1 100644
 --- a/third_party/blink/renderer/core/editing/commands/editor_command.cc
 +++ b/third_party/blink/renderer/core/editing/commands/editor_command.cc
-@@ -193,6 +193,8 @@ InputEvent::InputType InputTypeFromCommandType(EditingCommandType command_type,
+@@ -189,6 +189,8 @@ InputEvent::InputType InputTypeFromCommandType(EditingCommandType command_type,
      // TODO(editing-dev): Find appreciate InputType for following commands.
      case CommandType::kDeleteToMark:
        return InputType::kNone;
@@ -103,7 +103,7 @@ index d52ed494d8..d42b6ac322 100644
  
      // Command.
      case CommandType::kUndo:
-@@ -637,6 +639,20 @@ static bool ExecuteDeleteToMark(LocalFrame& frame,
+@@ -627,6 +629,20 @@ static bool ExecuteDeleteToMark(LocalFrame& frame,
    return true;
  }
  
@@ -111,20 +111,20 @@ index d52ed494d8..d42b6ac322 100644
 +                                   Event*,
 +                                   EditorCommandSource,
 +                                   const String&) {
-+  frame.Selection().Modify(SelectionModifyAlteration::kMove,  
-+                           SelectionModifyDirection::kForward,  
-+                           TextGranularity::kLineBoundary,  
-+                           SetSelectionBy::kSystem);  
-+  DeleteWithDirection(frame, DeleteDirection::kBackward,  
-+                      TextGranularity::kLineBoundary,  
-+                      /*kill_ring=*/true, /*is_typing_action=*/false);  
++  frame.Selection().Modify(SelectionModifyAlteration::kMove,
++                           SelectionModifyDirection::kForward,
++                           TextGranularity::kLineBoundary,
++                           SetSelectionBy::kSystem);
++  DeleteWithDirection(frame, DeleteDirection::kBackward,
++                      TextGranularity::kLineBoundary,
++                      /*kill_ring=*/true, /*is_typing_action=*/false);
 +  return true;
 +}
 +
  static bool ExecuteDeleteWordBackward(LocalFrame& frame,
                                        Event*,
                                        EditorCommandSource,
-@@ -1993,6 +2009,9 @@ static const EditorInternalCommand* InternalCommand(
+@@ -1958,6 +1974,9 @@ static const EditorInternalCommand* InternalCommand(
         ClipboardCommands::ExecutePasteFromImageUrl,
         SupportedFromMenuOrKeyBinding, EnabledInEditableText, StateNone,
         ValueStateOrNull, kNotTextInsertion, CanNotExecuteWhenDisabled},

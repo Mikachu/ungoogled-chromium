@@ -1,4 +1,4 @@
-From 66883476096b5976d0d32d79ca3544bceabf9151 Mon Sep 17 00:00:00 2001
+From d9ed4f99fe019c745bb1b3dfa98a91f212700c36 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Sat, 25 Jul 2026 06:02:51 +0200
 Subject: [PATCH] Add tab groups pinnable button to toolbar
@@ -13,10 +13,10 @@ Subject: [PATCH] Add tab groups pinnable button to toolbar
  6 files changed, 55 insertions(+), 8 deletions(-)
 
 diff --git a/chrome/browser/ui/browser_actions.cc b/chrome/browser/ui/browser_actions.cc
-index c27c8b8275..cf23cf67a0 100644
+index 09509ddd6a..b2592bf9b8 100644
 --- a/chrome/browser/ui/browser_actions.cc
 +++ b/chrome/browser/ui/browser_actions.cc
-@@ -146,6 +146,7 @@
+@@ -144,6 +144,7 @@
  #include "chrome/browser/ui/ui_features.h"
  #include "chrome/browser/ui/user_education/browser_user_education_interface.h"
  #include "chrome/browser/ui/views/bookmarks/bookmark_page_action_controller.h"
@@ -24,7 +24,7 @@ index c27c8b8275..cf23cf67a0 100644
  #include "chrome/browser/ui/views/commerce/discounts_page_action_view_controller.h"
  #include "chrome/browser/ui/views/file_system_access/file_system_access_bubble_controller.h"
  #include "chrome/browser/ui/views/frame/browser_view.h"
-@@ -1222,12 +1223,39 @@ void BrowserActions::InitializeChromeMenuActions() {
+@@ -1210,12 +1211,39 @@ void BrowserActions::InitializeChromeMenuActions() {
    root_action_item_->AddChild(
        actions::ActionItem::Builder(
            base::BindRepeating(
@@ -69,7 +69,7 @@ index c27c8b8275..cf23cf67a0 100644
            .SetActionId(kActionTabGroupsMenu)
            .SetText(BrowserActions::GetCleanTitleAndTooltipText(
                l10n_util::GetStringUTF16(IDS_SAVED_TAB_GROUPS_MENU)))
-@@ -1238,6 +1266,9 @@ void BrowserActions::InitializeChromeMenuActions() {
+@@ -1226,6 +1254,9 @@ void BrowserActions::InitializeChromeMenuActions() {
                    ? kGridViewIcon
                    : kSavedTabGroupBarEverythingOldIcon,
                ui::kColorIcon))
@@ -80,10 +80,10 @@ index c27c8b8275..cf23cf67a0 100644
  
    root_action_item_->AddChild(
 diff --git a/chrome/browser/ui/browser_actions.h b/chrome/browser/ui/browser_actions.h
-index 2a603bc8a8..4f506e0277 100644
+index cda6bf3dfd..3dc5d64110 100644
 --- a/chrome/browser/ui/browser_actions.h
 +++ b/chrome/browser/ui/browser_actions.h
-@@ -19,6 +19,10 @@ namespace actions {
+@@ -20,6 +20,10 @@ namespace actions {
  class ActionItem;
  }  // namespace actions
  
@@ -94,19 +94,19 @@ index 2a603bc8a8..4f506e0277 100644
  // Actions that a user can take that are scoped to a browser window.
  class BrowserActions {
   public:
-@@ -55,6 +59,7 @@ class BrowserActions {
-   std::unique_ptr<BrowserActionPrefsListener> browser_action_prefs_listener_;
+@@ -66,6 +70,7 @@ class BrowserActions {
    const raw_ref<BrowserWindowInterface> bwi_;
    const raw_ref<Profile> profile_;
+   ui::ScopedUnownedUserData<BrowserActions> scoped_unowned_user_data_;
 +  std::unique_ptr<tab_groups::STGEverythingMenu> tab_groups_menu_;
  };
  
  #endif  // CHROME_BROWSER_UI_BROWSER_ACTIONS_H_
 diff --git a/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc b/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc
-index 9cb94a4eaa..00c3cacda4 100644
+index b995c09a93..c377e0a149 100644
 --- a/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc
 +++ b/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc
-@@ -287,7 +287,7 @@ void STGEverythingMenu::PopulateMenu(views::MenuItemView* parent) {
+@@ -288,7 +288,7 @@ void STGEverythingMenu::PopulateMenu(views::MenuItemView* parent) {
    }
  }
  
@@ -115,7 +115,7 @@ index 9cb94a4eaa..00c3cacda4 100644
    auto root = std::make_unique<views::MenuItemView>(this);
    PopulateMenu(root.get());
  
-@@ -299,9 +299,12 @@ void STGEverythingMenu::RunMenu() {
+@@ -301,9 +301,12 @@ void STGEverythingMenu::RunMenu() {
  
    menu_runner_ = std::make_unique<views::MenuRunner>(
        std::move(root), views::MenuRunner::HAS_MNEMONICS);
@@ -130,10 +130,10 @@ index 9cb94a4eaa..00c3cacda4 100644
  }
  
 diff --git a/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.h b/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.h
-index cf06a54568..fedb557aa2 100644
+index cdc700d8b1..52dc89a9f1 100644
 --- a/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.h
 +++ b/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.h
-@@ -17,6 +17,7 @@
+@@ -16,6 +16,7 @@
  #include "components/saved_tab_groups/public/features.h"
  #include "ui/base/mojom/menu_source_type.mojom-forward.h"
  #include "ui/menus/simple_menu_model.h"
@@ -163,7 +163,7 @@ index 8f38847e30..29cb3468fe 100644
    kContextualTasks,
    kShowTabsFromOtherDevices,
 diff --git a/chrome/browser/ui/webui/side_panel/customize_chrome/customize_toolbar/customize_toolbar_handler.cc b/chrome/browser/ui/webui/side_panel/customize_chrome/customize_toolbar/customize_toolbar_handler.cc
-index 96695a255d..d3d48a663f 100644
+index 7f51aadbe7..59b6893bb3 100644
 --- a/chrome/browser/ui/webui/side_panel/customize_chrome/customize_toolbar/customize_toolbar_handler.cc
 +++ b/chrome/browser/ui/webui/side_panel/customize_chrome/customize_toolbar/customize_toolbar_handler.cc
 @@ -98,6 +98,8 @@ MojoActionForChromeAction(actions::ActionId action_id) {
@@ -184,7 +184,7 @@ index 96695a255d..d3d48a663f 100644
      default:
        return std::nullopt;
    }
-@@ -369,6 +373,8 @@ void CustomizeToolbarHandler::ListActions(ListActionsCallback callback) {
+@@ -368,6 +372,8 @@ void CustomizeToolbarHandler::ListActions(ListActionsCallback callback) {
               side_panel::customize_chrome::mojom::CategoryId::kTools);
    add_action(kActionShowChromeLabs,
               side_panel::customize_chrome::mojom::CategoryId::kTools);

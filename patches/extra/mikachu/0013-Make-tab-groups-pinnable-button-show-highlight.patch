@@ -1,4 +1,4 @@
-From 82b2864c9f7b1914f05d1bd2cd1ef10788df2ff7 Mon Sep 17 00:00:00 2001
+From a85ab6506aa3f107cfb8656e6d51d7b754de9251 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Sat, 25 Jul 2026 06:02:51 +0200
 Subject: [PATCH] Make tab groups pinnable button show highlight
@@ -10,10 +10,10 @@ Subject: [PATCH] Make tab groups pinnable button show highlight
  3 files changed, 28 insertions(+)
 
 diff --git a/chrome/browser/ui/browser_actions.cc b/chrome/browser/ui/browser_actions.cc
-index cf23cf67a0..b09ab3efe7 100644
+index b2592bf9b8..cbe98279b1 100644
 --- a/chrome/browser/ui/browser_actions.cc
 +++ b/chrome/browser/ui/browser_actions.cc
-@@ -1231,6 +1231,7 @@ void BrowserActions::InitializeChromeMenuActions() {
+@@ -1219,6 +1219,7 @@ void BrowserActions::InitializeChromeMenuActions() {
                    return;
                  }
                  gfx::Rect anchor_bounds;
@@ -21,7 +21,7 @@ index cf23cf67a0..b09ab3efe7 100644
                  auto* toolbar_button_provider =
                      bwi->GetBrowserForMigrationOnly()
                          ->GetBrowserView()
-@@ -1244,15 +1245,30 @@ void BrowserActions::InitializeChromeMenuActions() {
+@@ -1232,15 +1233,30 @@ void BrowserActions::InitializeChromeMenuActions() {
                              .GetIfView();
                      if (anchor_view) {
                        anchor_bounds = anchor_view->GetBoundsInScreen();
@@ -53,7 +53,7 @@ index cf23cf67a0..b09ab3efe7 100644
                },
                base::Unretained(this), bwi))
 diff --git a/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc b/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc
-index 00c3cacda4..06c50f69a2 100644
+index c377e0a149..3423c25f1e 100644
 --- a/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc
 +++ b/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc
 @@ -430,8 +430,15 @@ void STGEverythingMenu::WillShowMenu(views::MenuItemView* menu) {
@@ -73,7 +73,7 @@ index 00c3cacda4..06c50f69a2 100644
  
  STGEverythingMenu::~STGEverythingMenu() = default;
 diff --git a/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.h b/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.h
-index fedb557aa2..b0693e70be 100644
+index 52dc89a9f1..d3d585ce30 100644
 --- a/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.h
 +++ b/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.h
 @@ -10,6 +10,7 @@
@@ -83,7 +83,7 @@ index fedb557aa2..b0693e70be 100644
 +#include "base/functional/callback.h"
  #include "base/memory/raw_ptr.h"
  #include "base/uuid.h"
- #include "chrome/browser/ui/browser.h"
+ #include "chrome/browser/ui/toolbar/app_menu_model.h"
 @@ -66,6 +67,8 @@ class STGEverythingMenu : public views::MenuDelegate,
    // Runs the menu. Only called via pressing the Everything button.
    void RunMenu(gfx::Rect anchor_bounds_override = gfx::Rect());
