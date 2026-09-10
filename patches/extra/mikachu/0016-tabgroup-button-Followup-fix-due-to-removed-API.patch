@@ -1,0 +1,68 @@
+From 6cfa3df42e24c4c030018bb2ca015b64650a772a Mon Sep 17 00:00:00 2001
+From: Mikael Magnusson <mikachu@gmail.com>
+Date: Thu, 10 Sep 2026 02:57:14 +0200
+Subject: [PATCH] tabgroup button Followup fix due to removed API
+
+---
+ chrome/browser/ui/browser_actions.cc | 33 ++++++++++++++--------------
+ 1 file changed, 16 insertions(+), 17 deletions(-)
+
+diff --git a/chrome/browser/ui/browser_actions.cc b/chrome/browser/ui/browser_actions.cc
+index cbe98279b1..0dbecc5bb1 100644
+--- a/chrome/browser/ui/browser_actions.cc
++++ b/chrome/browser/ui/browser_actions.cc
+@@ -1221,8 +1221,7 @@ void BrowserActions::InitializeChromeMenuActions() {
+                 gfx::Rect anchor_bounds;
+                 PinnedActionToolbarButton* button = nullptr;
+                 auto* toolbar_button_provider =
+-                    bwi->GetBrowserForMigrationOnly()
+-                        ->GetBrowserView()
++                    CHECK_DEREF(BrowserView::GetBrowserViewForBrowser(bwi))
+                         .toolbar_button_provider();
+                 if (toolbar_button_provider) {
+                   auto* pinned_actions =
+@@ -1237,26 +1236,26 @@ void BrowserActions::InitializeChromeMenuActions() {
+                     }
+                   }
+                 }
+-              if (button) {
+-                button->AddHighlight();
+-              }
++                if (button) {
++                    button->AddHighlight();
++                }
+                 self->tab_groups_menu_ =
+                     std::make_unique<tab_groups::STGEverythingMenu>(
+                         /*menu_button_controller=*/nullptr,
+-                        bwi->GetBrowserForMigrationOnly(),
++                        bwi,
+                         tab_groups::STGEverythingMenu::MenuContext::
+                             kSavedTabGroupBar);
+-              if (button) {
+-                self->tab_groups_menu_->SetOnMenuClosedCallback(
+-                    base::BindOnce(
+-                        [](base::WeakPtr<views::View> weak_view) {
+-                          if (auto* view = weak_view.get()) {
+-                            views::AsViewClass<PinnedActionToolbarButton>(view)
+-                                ->ResetHighlight();
+-                          }
+-                        },
+-                        button->GetWeakPtr()));
+-              }
++                if (button) {
++                  self->tab_groups_menu_->SetOnMenuClosedCallback(
++                      base::BindOnce(
++                          [](base::WeakPtr<views::View> weak_view) {
++                            if (auto* view = weak_view.get()) {
++                              views::AsViewClass<PinnedActionToolbarButton>(view)
++                                  ->ResetHighlight();
++                            }
++                          },
++                          button->GetWeakPtr()));
++                }
+                 self->tab_groups_menu_->RunMenu(anchor_bounds);
+               },
+               base::Unretained(this), bwi))
+-- 
+2.38.1
+
