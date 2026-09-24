@@ -1,4 +1,4 @@
-From 5d6ee2589a209c343de136b567473b141669634a Mon Sep 17 00:00:00 2001
+From e53cc729b60e62813881e1c4987f747845b6dfd0 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Fri, 24 Jul 2026 01:07:08 +0200
 Subject: [PATCH] Fix reading saved app window placements

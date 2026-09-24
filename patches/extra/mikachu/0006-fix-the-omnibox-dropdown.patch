@@ -1,4 +1,4 @@
-From c9107bf76e736eea27fc171964cd3e1e7124631b Mon Sep 17 00:00:00 2001
+From 8c5474a77cd950139a3bede84cd88a9316e08cfa Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Fri, 26 Jun 2026 19:21:03 +0200
 Subject: [PATCH] fix the omnibox dropdown
@@ -17,7 +17,7 @@ Subject: [PATCH] fix the omnibox dropdown
  delete mode 100644 chrome/browser/ui/views/omnibox/omnibox_mouse_enter_exit_handler.h
 
 diff --git a/chrome/browser/ui/views/omnibox/BUILD.gn b/chrome/browser/ui/views/omnibox/BUILD.gn
-index 155926bfa6..799ee6b1c5 100644
+index 77bf3da208..743c3794b1 100644
 --- a/chrome/browser/ui/views/omnibox/BUILD.gn
 +++ b/chrome/browser/ui/views/omnibox/BUILD.gn
 @@ -16,7 +16,6 @@ source_set("omnibox") {
@@ -28,7 +28,7 @@ index 155926bfa6..799ee6b1c5 100644
      "omnibox_placeholder_util.h",
      "omnibox_popup_aim_presenter.h",
      "omnibox_popup_closer.h",
-@@ -87,7 +86,6 @@ source_set("impl") {
+@@ -88,7 +87,6 @@ source_set("impl") {
      "omnibox_header_view.cc",
      "omnibox_local_answer_header_view.cc",
      "omnibox_match_cell_view.cc",
@@ -142,7 +142,7 @@ index b75d7e8db2..0000000000
 -
 -#endif  // CHROME_BROWSER_UI_VIEWS_OMNIBOX_OMNIBOX_MOUSE_ENTER_EXIT_HANDLER_H_
 diff --git a/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.cc b/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.cc
-index f41d20c50d..7a59ecfd02 100644
+index 23971d8b41..6d9a03a968 100644
 --- a/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.cc
 +++ b/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.cc
 @@ -40,6 +40,8 @@
@@ -386,7 +386,7 @@ index 4adefc3bc6..0f0e3bcb3f 100644
    remove_suggestion_button_->SetVisible(new_visibility);
  
 diff --git a/chrome/browser/ui/views/omnibox/omnibox_result_view.h b/chrome/browser/ui/views/omnibox/omnibox_result_view.h
-index aaeaef3d92..2b772ac4af 100644
+index a1bbc2173c..2e817debb6 100644
 --- a/chrome/browser/ui/views/omnibox/omnibox_result_view.h
 +++ b/chrome/browser/ui/views/omnibox/omnibox_result_view.h
 @@ -13,7 +13,6 @@
@@ -396,8 +396,8 @@ index aaeaef3d92..2b772ac4af 100644
 -#include "chrome/browser/ui/views/omnibox/omnibox_mouse_enter_exit_handler.h"
  #include "components/omnibox/browser/autocomplete_match.h"
  #include "components/omnibox/browser/omnibox_popup_selection.h"
- #include "components/omnibox/browser/suggestion_answer.h"
-@@ -89,6 +88,8 @@ class OmniboxResultView : public views::View {
+ #include "third_party/skia/include/core/SkColor.h"
+@@ -88,6 +87,8 @@ class OmniboxResultView : public views::View {
    void ButtonPressed(OmniboxPopupSelection::LineState state,
                       const ui::Event& event);
  
@@ -406,7 +406,7 @@ index aaeaef3d92..2b772ac4af 100644
    void UpdateAccessibilityProperties();
  
    void UpdateAccessibleName();
-@@ -97,8 +98,6 @@ class OmniboxResultView : public views::View {
+@@ -96,8 +97,6 @@ class OmniboxResultView : public views::View {
    bool OnMousePressed(const ui::MouseEvent& event) override;
    bool OnMouseDragged(const ui::MouseEvent& event) override;
    void OnMouseReleased(const ui::MouseEvent& event) override;
@@ -415,7 +415,7 @@ index aaeaef3d92..2b772ac4af 100644
    void OnThemeChanged() override;
  
   private:
-@@ -174,8 +173,7 @@ class OmniboxResultView : public views::View {
+@@ -173,8 +172,7 @@ class OmniboxResultView : public views::View {
    // The "X" button at the end of the match cell, used to remove suggestions.
    raw_ptr<views::ImageButton> remove_suggestion_button_;
  

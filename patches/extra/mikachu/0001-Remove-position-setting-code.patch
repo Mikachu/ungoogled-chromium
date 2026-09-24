@@ -1,4 +1,4 @@
-From bf25cc5f7adb7807ebfedc09e9d550a52bc760fc Mon Sep 17 00:00:00 2001
+From e6f1a1911908b4c13ff396791e003be10e8c6969 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Tue, 16 Jun 2026 23:23:11 +0200
 Subject: [PATCH] Remove position setting code
@@ -9,7 +9,7 @@ Only remove the SetWmNormalHints call to minimize conflicts.
  1 file changed, 1 deletion(-)
 
 diff --git a/ui/ozone/platform/x11/x11_window.cc b/ui/ozone/platform/x11/x11_window.cc
-index 3605885b57..fc185fd825 100644
+index 1947486ac7..7f4eab8d8e 100644
 --- a/ui/ozone/platform/x11/x11_window.cc
 +++ b/ui/ozone/platform/x11/x11_window.cc
 @@ -1990,7 +1990,6 @@ void X11Window::Map(bool inactive) {

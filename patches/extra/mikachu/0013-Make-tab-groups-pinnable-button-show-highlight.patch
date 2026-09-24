@@ -1,4 +1,4 @@
-From a85ab6506aa3f107cfb8656e6d51d7b754de9251 Mon Sep 17 00:00:00 2001
+From 1dc1bd5e9441c59c2a66e5f4e7c542b71b0781ec Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Sat, 25 Jul 2026 06:02:51 +0200
 Subject: [PATCH] Make tab groups pinnable button show highlight
@@ -10,10 +10,10 @@ Subject: [PATCH] Make tab groups pinnable button show highlight
  3 files changed, 28 insertions(+)
 
 diff --git a/chrome/browser/ui/browser_actions.cc b/chrome/browser/ui/browser_actions.cc
-index b2592bf9b8..cbe98279b1 100644
+index 76b025f4df..ae59f2b595 100644
 --- a/chrome/browser/ui/browser_actions.cc
 +++ b/chrome/browser/ui/browser_actions.cc
-@@ -1219,6 +1219,7 @@ void BrowserActions::InitializeChromeMenuActions() {
+@@ -1210,6 +1210,7 @@ void BrowserActions::InitializeChromeMenuActions() {
                    return;
                  }
                  gfx::Rect anchor_bounds;
@@ -21,7 +21,7 @@ index b2592bf9b8..cbe98279b1 100644
                  auto* toolbar_button_provider =
                      bwi->GetBrowserForMigrationOnly()
                          ->GetBrowserView()
-@@ -1232,15 +1233,30 @@ void BrowserActions::InitializeChromeMenuActions() {
+@@ -1223,15 +1224,30 @@ void BrowserActions::InitializeChromeMenuActions() {
                              .GetIfView();
                      if (anchor_view) {
                        anchor_bounds = anchor_view->GetBoundsInScreen();
@@ -53,10 +53,10 @@ index b2592bf9b8..cbe98279b1 100644
                },
                base::Unretained(this), bwi))
 diff --git a/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc b/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc
-index c377e0a149..3423c25f1e 100644
+index ade2f68e8b..810f0e761f 100644
 --- a/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc
 +++ b/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc
-@@ -430,8 +430,15 @@ void STGEverythingMenu::WillShowMenu(views::MenuItemView* menu) {
+@@ -428,8 +428,15 @@ void STGEverythingMenu::WillShowMenu(views::MenuItemView* menu) {
    }
  }
  

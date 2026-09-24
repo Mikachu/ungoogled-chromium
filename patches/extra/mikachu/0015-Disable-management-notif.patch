@@ -1,4 +1,4 @@
-From 32f7fd72ad5bec28b29b37de5f7ff651827315db Mon Sep 17 00:00:00 2001
+From 3ffdba3088514a84029c956cb1f9625a706f9712 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Sat, 5 Sep 2026 18:12:40 +0200
 Subject: [PATCH] Disable management notif
