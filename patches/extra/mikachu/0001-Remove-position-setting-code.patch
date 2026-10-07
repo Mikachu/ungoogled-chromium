@@ -1,4 +1,4 @@
-From e6f1a1911908b4c13ff396791e003be10e8c6969 Mon Sep 17 00:00:00 2001
+From a89b83d7b2535c2edace78c06229e3daa40704c9 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Tue, 16 Jun 2026 23:23:11 +0200
 Subject: [PATCH] Remove position setting code

@@ -1,4 +1,4 @@
-From 1dc1bd5e9441c59c2a66e5f4e7c542b71b0781ec Mon Sep 17 00:00:00 2001
+From 9be502457b252ab8e5747cf5775f924764d2651c Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Sat, 25 Jul 2026 06:02:51 +0200
 Subject: [PATCH] Make tab groups pinnable button show highlight
@@ -10,10 +10,10 @@ Subject: [PATCH] Make tab groups pinnable button show highlight
  3 files changed, 28 insertions(+)
 
 diff --git a/chrome/browser/ui/browser_actions.cc b/chrome/browser/ui/browser_actions.cc
-index 76b025f4df..ae59f2b595 100644
+index a83caef08e..ad94476885 100644
 --- a/chrome/browser/ui/browser_actions.cc
 +++ b/chrome/browser/ui/browser_actions.cc
-@@ -1210,6 +1210,7 @@ void BrowserActions::InitializeChromeMenuActions() {
+@@ -1227,6 +1227,7 @@ void BrowserActions::InitializeChromeMenuActions() {
                    return;
                  }
                  gfx::Rect anchor_bounds;
@@ -21,7 +21,7 @@ index 76b025f4df..ae59f2b595 100644
                  auto* toolbar_button_provider =
                      bwi->GetBrowserForMigrationOnly()
                          ->GetBrowserView()
-@@ -1223,15 +1224,30 @@ void BrowserActions::InitializeChromeMenuActions() {
+@@ -1240,15 +1241,30 @@ void BrowserActions::InitializeChromeMenuActions() {
                              .GetIfView();
                      if (anchor_view) {
                        anchor_bounds = anchor_view->GetBoundsInScreen();
@@ -53,7 +53,7 @@ index 76b025f4df..ae59f2b595 100644
                },
                base::Unretained(this), bwi))
 diff --git a/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc b/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc
-index ade2f68e8b..810f0e761f 100644
+index 1ca9d1f750..d7f239ffda 100644
 --- a/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc
 +++ b/chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.cc
 @@ -428,8 +428,15 @@ void STGEverythingMenu::WillShowMenu(views::MenuItemView* menu) {

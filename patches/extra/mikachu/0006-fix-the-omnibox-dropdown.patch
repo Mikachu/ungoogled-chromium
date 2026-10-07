@@ -1,4 +1,4 @@
-From 8c5474a77cd950139a3bede84cd88a9316e08cfa Mon Sep 17 00:00:00 2001
+From 131a31c7013a97625139d0d73857ce7e6bc78de0 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Fri, 26 Jun 2026 19:21:03 +0200
 Subject: [PATCH] fix the omnibox dropdown
@@ -17,7 +17,7 @@ Subject: [PATCH] fix the omnibox dropdown
  delete mode 100644 chrome/browser/ui/views/omnibox/omnibox_mouse_enter_exit_handler.h
 
 diff --git a/chrome/browser/ui/views/omnibox/BUILD.gn b/chrome/browser/ui/views/omnibox/BUILD.gn
-index 77bf3da208..743c3794b1 100644
+index 8fa8ab9a1e..ff8409ea4b 100644
 --- a/chrome/browser/ui/views/omnibox/BUILD.gn
 +++ b/chrome/browser/ui/views/omnibox/BUILD.gn
 @@ -16,7 +16,6 @@ source_set("omnibox") {
@@ -28,7 +28,7 @@ index 77bf3da208..743c3794b1 100644
      "omnibox_placeholder_util.h",
      "omnibox_popup_aim_presenter.h",
      "omnibox_popup_closer.h",
-@@ -88,7 +87,6 @@ source_set("impl") {
+@@ -89,7 +88,6 @@ source_set("impl") {
      "omnibox_header_view.cc",
      "omnibox_local_answer_header_view.cc",
      "omnibox_match_cell_view.cc",
@@ -285,10 +285,10 @@ index f8698d2934..72a99c43b8 100644
    base::ScopedObservation<OmniboxEditModel, OmniboxEditModel::Observer>
        edit_model_observation_{this};
 diff --git a/chrome/browser/ui/views/omnibox/omnibox_result_view.cc b/chrome/browser/ui/views/omnibox/omnibox_result_view.cc
-index 4adefc3bc6..0f0e3bcb3f 100644
+index 7fd311edb6..c262fe2f55 100644
 --- a/chrome/browser/ui/views/omnibox/omnibox_result_view.cc
 +++ b/chrome/browser/ui/views/omnibox/omnibox_result_view.cc
-@@ -151,11 +151,7 @@ END_METADATA
+@@ -152,11 +152,7 @@ END_METADATA
  OmniboxResultView::OmniboxResultView(OmniboxPopupViewViews* popup_view,
                                       size_t model_index)
      : popup_view_(popup_view),
@@ -301,14 +301,16 @@ index 4adefc3bc6..0f0e3bcb3f 100644
    CHECK_GE(model_index, 0u);
  
    // The view hierarchy is:
-@@ -310,13 +306,19 @@ OmniboxResultView::OmniboxResultView(OmniboxPopupViewViews* popup_view,
+@@ -311,8 +307,6 @@ OmniboxResultView::OmniboxResultView(OmniboxPopupViewViews* popup_view,
                                 views::MaximumFlexSizeRule::kPreferred)
            .WithOrder(1));
  
 -  mouse_enter_exit_handler_.ObserveMouseEnterExitOn(this);
 -
    GetViewAccessibility().SetRole(ax::mojom::Role::kListBoxOption);
-   UpdateAccessibleName();
+   GetViewAccessibility().SetDefaultActionVerb(
+       ax::mojom::DefaultActionVerb::kOpen);
+@@ -320,6 +314,14 @@ OmniboxResultView::OmniboxResultView(OmniboxPopupViewViews* popup_view,
    GetViewAccessibility().SetPosInSet(model_index_ + 1);
  }
  
@@ -323,7 +325,7 @@ index 4adefc3bc6..0f0e3bcb3f 100644
  OmniboxResultView::~OmniboxResultView() = default;
  
  // static
-@@ -571,8 +573,8 @@ OmniboxPartState OmniboxResultView::GetThemeState() const {
+@@ -574,8 +576,8 @@ OmniboxPartState OmniboxResultView::GetThemeState() const {
  
    // If we don't highlight the whole row when the user has the mouse over the
    // remove suggestion button, it's unclear which suggestion is being removed.
@@ -334,7 +336,7 @@ index 4adefc3bc6..0f0e3bcb3f 100644
  }
  
  void OmniboxResultView::OnMatchIconUpdated() {
-@@ -643,14 +645,6 @@ void OmniboxResultView::OnMouseReleased(const ui::MouseEvent& event) {
+@@ -646,14 +648,6 @@ void OmniboxResultView::OnMouseReleased(const ui::MouseEvent& event) {
    }
  }
  
@@ -349,7 +351,7 @@ index 4adefc3bc6..0f0e3bcb3f 100644
  void OmniboxResultView::OnThemeChanged() {
    views::View::OnThemeChanged();
    ApplyThemeAndRefreshIcons(/*force_reapply_styles=*/true);
-@@ -695,7 +689,7 @@ void OmniboxResultView::UpdateHoverState() {
+@@ -698,7 +692,7 @@ void OmniboxResultView::UpdateHoverState() {
    UpdateFeedbackButtonsVisibility();
    UpdateRemoveSuggestionVisibility();
    ApplyThemeAndRefreshIcons();
@@ -358,7 +360,7 @@ index 4adefc3bc6..0f0e3bcb3f 100644
  }
  
  void OmniboxResultView::UpdateDividerLineVisibility() {
-@@ -713,7 +707,7 @@ void OmniboxResultView::UpdateSecondaryTextVisibility() {
+@@ -716,7 +710,7 @@ void OmniboxResultView::UpdateSecondaryTextVisibility() {
    const bool is_contextual = match_.IsContextualSearchSuggestion();
  
    const bool show_description =
@@ -367,7 +369,7 @@ index 4adefc3bc6..0f0e3bcb3f 100644
    if (suggestion_view_->description()->GetVisible() != show_description) {
      suggestion_view_->description()->SetVisible(show_description);
      suggestion_view_->separator()->SetVisible(show_description);
-@@ -729,7 +723,7 @@ void OmniboxResultView::UpdateFeedbackButtonsVisibility() {
+@@ -732,7 +726,7 @@ void OmniboxResultView::UpdateFeedbackButtonsVisibility() {
        popup_view_->controller()->edit_model()->IsPopupControlPresentOnMatch(
            OmniboxPopupSelection(
                model_index_, OmniboxPopupSelection::FOCUSED_BUTTON_THUMBS_UP)) &&
@@ -376,7 +378,7 @@ index 4adefc3bc6..0f0e3bcb3f 100644
  
    // Same rules apply to both buttons.
    thumbs_up_button_->SetVisible(new_visibility);
-@@ -749,7 +743,7 @@ void OmniboxResultView::UpdateRemoveSuggestionVisibility() {
+@@ -752,7 +746,7 @@ void OmniboxResultView::UpdateRemoveSuggestionVisibility() {
            OmniboxPopupSelection(
                model_index_,
                OmniboxPopupSelection::FOCUSED_BUTTON_REMOVE_SUGGESTION)) &&
