@@ -1,4 +1,4 @@
-From 26d661de6569309d4f6bb2a3504c696a9e619881 Mon Sep 17 00:00:00 2001
+From 97a4d8831ef6d2f559b01883ede799ec77edfe3a Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Tue, 23 Jun 2026 09:31:09 +0200
 Subject: [PATCH] potentially handle ctrl-u correctly
@@ -42,10 +42,10 @@ index 1a68ca9232..8c0d7bbf47 100644
      accelerators->emplace_back(
          AcceleratorMapping({ui::VKEY_N, ui::EF_CONTROL_DOWN | ui::EF_ALT_DOWN,
 diff --git a/content/browser/renderer_host/render_widget_host_view_aura.cc b/content/browser/renderer_host/render_widget_host_view_aura.cc
-index 0bca4235e9..236c7a270d 100644
+index 6dd861aaf3..e8a65b1281 100644
 --- a/content/browser/renderer_host/render_widget_host_view_aura.cc
 +++ b/content/browser/renderer_host/render_widget_host_view_aura.cc
-@@ -3528,10 +3528,27 @@ void RenderWidgetHostViewAura::ForwardKeyboardEventWithLatencyInfo(
+@@ -3560,10 +3560,27 @@ void RenderWidgetHostViewAura::ForwardKeyboardEventWithLatencyInfo(
      return;
  
  #if BUILDFLAG(IS_LINUX)
@@ -184,7 +184,7 @@ index 2e05820feb..d2712856ba 100644
  TEXT_EDIT_COMMAND(DELETE_TO_BEGINNING_OF_PARAGRAPH, \
    kDeleteToBeginningOfParagraph)
 diff --git a/ui/views/controls/textfield/textfield.cc b/ui/views/controls/textfield/textfield.cc
-index df8ddec32e..3d391ed33b 100644
+index 5405f62d92..52b2870113 100644
 --- a/ui/views/controls/textfield/textfield.cc
 +++ b/ui/views/controls/textfield/textfield.cc
 @@ -1033,6 +1033,11 @@ bool Textfield::SkipDefaultKeyEventProcessing(const ui::KeyEvent& event) {

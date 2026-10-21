@@ -1,4 +1,4 @@
-From 242aadf2f1d9985e9de4fcba7dc3e914a4cc8cab Mon Sep 17 00:00:00 2001
+From 0a467e994ee829963a7f148d6c301ee0be7b775f Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Sat, 25 Jul 2026 06:02:51 +0200
 Subject: [PATCH] Add tab groups pinnable button to toolbar
@@ -13,18 +13,18 @@ Subject: [PATCH] Add tab groups pinnable button to toolbar
  6 files changed, 55 insertions(+), 8 deletions(-)
 
 diff --git a/chrome/browser/ui/browser_actions.cc b/chrome/browser/ui/browser_actions.cc
-index 83b50c9d04..a83caef08e 100644
+index 0f7a326019..38d2a2fcc5 100644
 --- a/chrome/browser/ui/browser_actions.cc
 +++ b/chrome/browser/ui/browser_actions.cc
-@@ -152,6 +152,7 @@
- #include "chrome/browser/ui/ui_features.h"
+@@ -160,6 +160,7 @@
  #include "chrome/browser/ui/user_education/browser_user_education_interface.h"
+ #include "chrome/browser/ui/views/app_menu/app_menu_action_item.h"
  #include "chrome/browser/ui/views/bookmarks/bookmark_page_action_controller.h"
 +#include "chrome/browser/ui/views/bookmarks/saved_tab_groups/saved_tab_group_everything_menu.h"
  #include "chrome/browser/ui/views/commerce/discounts_page_action_view_controller.h"
  #include "chrome/browser/ui/views/file_system_access/file_system_access_bubble_controller.h"
  #include "chrome/browser/ui/views/frame/browser_view.h"
-@@ -1218,12 +1219,39 @@ void BrowserActions::InitializeChromeMenuActions() {
+@@ -1259,12 +1260,39 @@ void BrowserActions::InitializeChromeMenuActions() {
    root_action_item_->AddChild(
        actions::ActionItem::Builder(
            base::BindRepeating(
@@ -69,7 +69,7 @@ index 83b50c9d04..a83caef08e 100644
            .SetActionId(kActionTabGroupsMenu)
            .SetText(BrowserActions::GetCleanTitleAndTooltipText(
                l10n_util::GetStringUTF16(IDS_SAVED_TAB_GROUPS_MENU)))
-@@ -1234,6 +1262,9 @@ void BrowserActions::InitializeChromeMenuActions() {
+@@ -1275,6 +1303,9 @@ void BrowserActions::InitializeChromeMenuActions() {
                    ? kGridViewIcon
                    : kSavedTabGroupBarEverythingOldIcon,
                ui::kColorIcon))
