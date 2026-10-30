@@ -1,0 +1,127 @@
+From cf332eed0584a17b77d5a3fdbf1f40b5f8983b30 Mon Sep 17 00:00:00 2001
+From: Mikael Magnusson <mikachu@gmail.com>
+Date: Fri, 30 Oct 2026 04:11:51 +0100
+Subject: [PATCH] Fix cancelling press on toolbar buttons
+
+Previous code would trigger the menu when cursor was far off to the side, and spuriously open the menu when clicking sloppily.
+---
+ .../resources/webui_toolbar/toolbar_button.ts | 22 ++++++++++---------
+ .../ui/views/toolbar/toolbar_button.cc        | 16 ++++++--------
+ .../browser/ui/views/toolbar/toolbar_button.h |  3 ---
+ 3 files changed, 19 insertions(+), 22 deletions(-)
+
+diff --git a/chrome/browser/resources/webui_toolbar/toolbar_button.ts b/chrome/browser/resources/webui_toolbar/toolbar_button.ts
+index 0eff6f5978..b3ee29695f 100644
+--- a/chrome/browser/resources/webui_toolbar/toolbar_button.ts
++++ b/chrome/browser/resources/webui_toolbar/toolbar_button.ts
+@@ -84,8 +84,6 @@ interface ContextMenuState {
+   activeElement: HTMLElement|null;
+ 
+   longPressTimer: TimerHelper;
+-
+-  initialY: number;
+ }
+ 
+ // Tests if a mouse event occurred over the given HTMLElement. Since shadow DOM
+@@ -144,7 +142,6 @@ function isMouseEventOverTarget(e: MouseEvent, target: HTMLElement) {
+ export class PressHandler {
+   // This follows what is done in the views' ToolbarButton.
+   private static readonly LONG_PRESS_TIMER_THRESHOLD_MS = 500;
+-  private static readonly DRAG_THRESHOLD_PX = 8;
+   private static readonly NO_ACTIVE_POINTER_ID = -1;
+ 
+   private onLongPress_: (source: MenuSourceType) => void;
+@@ -168,20 +165,26 @@ export class PressHandler {
+         activePointerId: PressHandler.NO_ACTIVE_POINTER_ID,
+         activeElement: null,
+         longPressTimer: new TimerHelper(),
+-        initialY: 0,
+       };
+     }
+   }
+ 
+   private onPointermove_ = (e: PointerEvent) => {
+-    if (!this.contextMenuState_ ||
+-        e.pointerId !== this.contextMenuState_.activePointerId) {
++    const state = this.contextMenuState_;
++    if (!state || e.pointerId !== state.activePointerId || !state.activeElement) {
+       return;
+     }
+-    // Detect downward drag.
+-    if (e.clientY - this.contextMenuState_.initialY >
+-        PressHandler.DRAG_THRESHOLD_PX) {
++    const rect = state.activeElement.getBoundingClientRect();
++    if (e.clientY > rect.bottom) {
++      // Dragged out through the bottom edge: open the menu.
++      this.resetContextMenuState_();
+       this.onLongPress_(getContextMenuSourceType(e));
++      return;
++    }
++    if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top) {
++      // Dragged out through any other edge: abandon long-press tracking.
++      // The click itself will still be cancelled by shouldCancelClick_() on
++      // release.
+       this.resetContextMenuState_();
+     }
+   };
+@@ -268,7 +271,6 @@ export class PressHandler {
+       this.onLongPress_(MenuSourceType.kLongPress);
+     }, PressHandler.LONG_PRESS_TIMER_THRESHOLD_MS);
+ 
+-    this.contextMenuState_.initialY = e.clientY;
+     target.addEventListener('pointermove', this.onPointermove_);
+   };
+ 
+diff --git a/chrome/browser/ui/views/toolbar/toolbar_button.cc b/chrome/browser/ui/views/toolbar/toolbar_button.cc
+index d4c4f01c14..ae0f46b93a 100644
+--- a/chrome/browser/ui/views/toolbar/toolbar_button.cc
++++ b/chrome/browser/ui/views/toolbar/toolbar_button.cc
+@@ -461,11 +461,6 @@ gfx::Rect ToolbarButton::GetAnchorBoundsInScreen() const {
+ bool ToolbarButton::OnMousePressed(const ui::MouseEvent& event) {
+   if (trigger_menu_on_long_press_ && IsTriggerableEvent(event) &&
+       GetEnabled() && ShouldShowMenu() && HitTestPoint(event.location())) {
+-    // Store the y pos of the mouse coordinates so we can use them later to
+-    // determine if the user dragged the mouse down (which should pop up the
+-    // drag down menu immediately, instead of waiting for the timer)
+-    y_position_on_lbuttondown_ = event.y();
+-
+     // Schedule a task that will show the menu.
+     base::SingleThreadTaskRunner::GetCurrentDefault()->PostDelayedTask(
+         FROM_HERE,
+@@ -482,12 +477,15 @@ bool ToolbarButton::OnMouseDragged(const ui::MouseEvent& event) {
+   bool result = LabelButton::OnMouseDragged(event);
+ 
+   if (trigger_menu_on_long_press_ && show_menu_factory_.HasWeakPtrs()) {
+-    // If the mouse is dragged to a y position lower than where it was when
+-    // clicked then we should not wait for the menu to appear but show
+-    // it immediately.
+-    if (event.y() > y_position_on_lbuttondown_ + GetHorizontalDragThreshold()) {
++    if (event.y() > height()) {
++      // Dragged out through the bottom edge: show the menu immediately
++      // instead of waiting for the timer.
+       show_menu_factory_.InvalidateWeakPtrs();
+       ShowDropDownMenu(ui::GetMenuSourceTypeForEvent(event));
++    } else if (event.x() < 0 || event.x() >= width() || event.y() < 0) {
++      // Dragged out through any other edge: cancel the pending menu so a
++      // sloppy press-and-drag doesn't spuriously open it.
++      show_menu_factory_.InvalidateWeakPtrs();
+     }
+   }
+ 
+diff --git a/chrome/browser/ui/views/toolbar/toolbar_button.h b/chrome/browser/ui/views/toolbar/toolbar_button.h
+index 0fcdbfa57b..ba64dcdd86 100644
+--- a/chrome/browser/ui/views/toolbar/toolbar_button.h
++++ b/chrome/browser/ui/views/toolbar/toolbar_button.h
+@@ -351,9 +351,6 @@ class ToolbarButton : public views::LabelButton,
+   // TODO(crbug.com/40258442): Remove this member after issue is addressed.
+   bool has_in_product_help_promo_ = false;
+ 
+-  // Y position of mouse when left mouse button is pressed.
+-  int y_position_on_lbuttondown_ = 0;
+-
+   // The model adapter for the drop down menu.
+   std::unique_ptr<views::MenuModelAdapter> menu_model_adapter_;
+ 
+-- 
+2.38.1
+
