@@ -1,0 +1,70 @@
+From 04f9c4fc942790424b52a84297a6034c2068555c Mon Sep 17 00:00:00 2001
+From: Mikael Magnusson <mikachu@gmail.com>
+Date: Sun, 1 Nov 2026 21:32:47 +0100
+Subject: [PATCH] Another try to fix closing tabs
+
+---
+ chrome/browser/ui/views/tabs/tab.cc | 14 ++++++++++++--
+ ui/views/view.cc                    | 11 +++++++++++
+ 2 files changed, 23 insertions(+), 2 deletions(-)
+
+diff --git a/chrome/browser/ui/views/tabs/tab.cc b/chrome/browser/ui/views/tabs/tab.cc
+index 7a77fc7f0b..9f7b2bcb93 100644
+--- a/chrome/browser/ui/views/tabs/tab.cc
++++ b/chrome/browser/ui/views/tabs/tab.cc
+@@ -795,8 +795,10 @@ void Tab::OnMouseReleased(const ui::MouseEvent& event) {
+   // (normal windows behavior is to discard presses of a UI element where the
+   // releases happen off the element).
+   if (event.IsOnlyMiddleMouseButton()) {
++    Tab* tab_to_close = nullptr;
+     if (HitTestPoint(event.location())) {
+-      controller_->CloseTab(this, CloseTabSource::kFromMouse);
++      tab_to_close = this;
++      //controller_->CloseTab(this, CloseTabSource::kFromMouse);
+     } else if (closing_) {
+       // We're animating closed and a middle mouse button was pushed on us but
+       // we don't contain the mouse anymore. We assume the user is clicking
+@@ -806,9 +808,17 @@ void Tab::OnMouseReleased(const ui::MouseEvent& event) {
+       ConvertPointToTarget(this, parent(), &location_in_parent);
+       Tab* closest_tab = controller_->GetTabAt(location_in_parent);
+       if (closest_tab) {
+-        controller_->CloseTab(closest_tab, CloseTabSource::kFromMouse);
++        tab_to_close = closest_tab;
++        //controller_->CloseTab(closest_tab, CloseTabSource::kFromMouse);
+       }
+     }
++    if (tab_to_close) {
++      auto* widget = GetWidget();
++      if (widget && widget->HasCapture()) {
++        widget->ReleaseCapture();
++      }
++      controller_->CloseTab(tab_to_close, CloseTabSource::kFromMouse);
++    }
+   } else if (event.IsOnlyLeftMouseButton() &&
+              !(event.IsShiftDown() || shift_pressed_on_mouse_down_) &&
+              !IsSelectionModifierDown(event)) {
+diff --git a/ui/views/view.cc b/ui/views/view.cc
+index b0fb45e686..791268f828 100644
+--- a/ui/views/view.cc
++++ b/ui/views/view.cc
+@@ -1753,6 +1753,17 @@ void View::OnEvent(ui::Event* event) {
+     // If this view or any of it parent is disabled, we should "eat" events
+     // without processing. Similarly we should honor views configured to
+     // ignore events within its subtree.
++    //
++    // A mouse release must still drop capture: if this view was disabled
++    // while holding capture (e.g. a Tab marked closing after middle-click),
++    // the release would otherwise never reach ProcessMouseReleased and
++    // native capture would leak until the widget is torn down.
++    if (event->type() == ui::EventType::kMouseReleased) {
++      auto* widget = GetWidget();
++      if (widget && widget->HasCapture()) {
++        widget->ReleaseCapture();
++      }
++    }
+     return;
+   }
+   ui::EventHandler::OnEvent(event);
+-- 
+2.38.1
+

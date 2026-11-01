@@ -127,3 +127,4 @@ extra/mikachu/0014-set-core2-march.patch
 extra/mikachu/0015-Disable-management-notif.patch
 extra/mikachu/0016-tabgroup-button-Followup-fix-due-to-removed-API.patch
 extra/mikachu/0018-Fix-cancelling-press-on-toolbar-buttons.patch
+extra/mikachu/0019-Another-try-to-fix-closing-tabs.patch
