@@ -1,4 +1,4 @@
-From 04f9c4fc942790424b52a84297a6034c2068555c Mon Sep 17 00:00:00 2001
+From 9178cd7d428832d9fcf16a7100eea548b57c295f Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Sun, 1 Nov 2026 21:32:47 +0100
 Subject: [PATCH] Another try to fix closing tabs
@@ -9,7 +9,7 @@ Subject: [PATCH] Another try to fix closing tabs
  2 files changed, 23 insertions(+), 2 deletions(-)
 
 diff --git a/chrome/browser/ui/views/tabs/tab.cc b/chrome/browser/ui/views/tabs/tab.cc
-index 7a77fc7f0b..9f7b2bcb93 100644
+index 96d48ee0fe..141c972ec3 100644
 --- a/chrome/browser/ui/views/tabs/tab.cc
 +++ b/chrome/browser/ui/views/tabs/tab.cc
 @@ -795,8 +795,10 @@ void Tab::OnMouseReleased(const ui::MouseEvent& event) {
@@ -44,10 +44,10 @@ index 7a77fc7f0b..9f7b2bcb93 100644
               !(event.IsShiftDown() || shift_pressed_on_mouse_down_) &&
               !IsSelectionModifierDown(event)) {
 diff --git a/ui/views/view.cc b/ui/views/view.cc
-index b0fb45e686..791268f828 100644
+index e1b82626bb..ae72bcd554 100644
 --- a/ui/views/view.cc
 +++ b/ui/views/view.cc
-@@ -1753,6 +1753,17 @@ void View::OnEvent(ui::Event* event) {
+@@ -1788,6 +1788,17 @@ void View::OnEvent(ui::Event* event) {
      // If this view or any of it parent is disabled, we should "eat" events
      // without processing. Similarly we should honor views configured to
      // ignore events within its subtree.
@@ -57,8 +57,8 @@ index b0fb45e686..791268f828 100644
 +    // the release would otherwise never reach ProcessMouseReleased and
 +    // native capture would leak until the widget is torn down.
 +    if (event->type() == ui::EventType::kMouseReleased) {
-+      auto* widget = GetWidget();
-+      if (widget && widget->HasCapture()) {
++      if (Widget* widget = GetWidget();
++          widget && widget->HasCapture()) {
 +        widget->ReleaseCapture();
 +      }
 +    }

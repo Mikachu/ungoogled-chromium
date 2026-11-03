@@ -1,20 +1,20 @@
-From cf332eed0584a17b77d5a3fdbf1f40b5f8983b30 Mon Sep 17 00:00:00 2001
+From 71d0ccdd53ff6ec58ed2b67f26c9e72505561f9e Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Fri, 30 Oct 2026 04:11:51 +0100
 Subject: [PATCH] Fix cancelling press on toolbar buttons
 
 Previous code would trigger the menu when cursor was far off to the side, and spuriously open the menu when clicking sloppily.
 ---
- .../resources/webui_toolbar/toolbar_button.ts | 22 ++++++++++---------
+ .../webui_toolbar_shared/toolbar_button.ts    | 22 ++++++++++---------
  .../ui/views/toolbar/toolbar_button.cc        | 16 ++++++--------
  .../browser/ui/views/toolbar/toolbar_button.h |  3 ---
  3 files changed, 19 insertions(+), 22 deletions(-)
 
-diff --git a/chrome/browser/resources/webui_toolbar/toolbar_button.ts b/chrome/browser/resources/webui_toolbar/toolbar_button.ts
-index 0eff6f5978..b3ee29695f 100644
---- a/chrome/browser/resources/webui_toolbar/toolbar_button.ts
-+++ b/chrome/browser/resources/webui_toolbar/toolbar_button.ts
-@@ -84,8 +84,6 @@ interface ContextMenuState {
+diff --git a/chrome/browser/resources/webui_toolbar_shared/toolbar_button.ts b/chrome/browser/resources/webui_toolbar_shared/toolbar_button.ts
+index d5666c3436..bc3a5efb60 100644
+--- a/chrome/browser/resources/webui_toolbar_shared/toolbar_button.ts
++++ b/chrome/browser/resources/webui_toolbar_shared/toolbar_button.ts
+@@ -150,8 +150,6 @@ interface ContextMenuState {
    activeElement: HTMLElement|null;
  
    longPressTimer: TimerHelper;
@@ -23,7 +23,7 @@ index 0eff6f5978..b3ee29695f 100644
  }
  
  // Tests if a mouse event occurred over the given HTMLElement. Since shadow DOM
-@@ -144,7 +142,6 @@ function isMouseEventOverTarget(e: MouseEvent, target: HTMLElement) {
+@@ -210,7 +208,6 @@ function isMouseEventOverTarget(e: MouseEvent, target: HTMLElement) {
  export class PressHandler {
    // This follows what is done in the views' ToolbarButton.
    private static readonly LONG_PRESS_TIMER_THRESHOLD_MS = 500;
@@ -31,7 +31,7 @@ index 0eff6f5978..b3ee29695f 100644
    private static readonly NO_ACTIVE_POINTER_ID = -1;
  
    private onLongPress_: (source: MenuSourceType) => void;
-@@ -168,20 +165,26 @@ export class PressHandler {
+@@ -234,20 +231,26 @@ export class PressHandler {
          activePointerId: PressHandler.NO_ACTIVE_POINTER_ID,
          activeElement: null,
          longPressTimer: new TimerHelper(),
@@ -64,7 +64,7 @@ index 0eff6f5978..b3ee29695f 100644
        this.resetContextMenuState_();
      }
    };
-@@ -268,7 +271,6 @@ export class PressHandler {
+@@ -334,7 +337,6 @@ export class PressHandler {
        this.onLongPress_(MenuSourceType.kLongPress);
      }, PressHandler.LONG_PRESS_TIMER_THRESHOLD_MS);
  

@@ -1,4 +1,4 @@
-From 0841fec9ec0ce371a9c279d32f03bc6dc372b767 Mon Sep 17 00:00:00 2001
+From 22292f79a106ccec3812e15b4378e20fcdc8d0d3 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Fri, 26 Jun 2026 19:21:03 +0200
 Subject: [PATCH] fix the omnibox dropdown
@@ -17,7 +17,7 @@ Subject: [PATCH] fix the omnibox dropdown
  delete mode 100644 chrome/browser/ui/views/omnibox/omnibox_mouse_enter_exit_handler.h
 
 diff --git a/chrome/browser/ui/views/omnibox/BUILD.gn b/chrome/browser/ui/views/omnibox/BUILD.gn
-index 6d685e138b..5ea105feb1 100644
+index be19fc11a6..ae882f9686 100644
 --- a/chrome/browser/ui/views/omnibox/BUILD.gn
 +++ b/chrome/browser/ui/views/omnibox/BUILD.gn
 @@ -16,7 +16,6 @@ source_set("omnibox") {
@@ -28,7 +28,7 @@ index 6d685e138b..5ea105feb1 100644
      "omnibox_placeholder_util.h",
      "omnibox_popup_aim_presenter.h",
      "omnibox_popup_closer.h",
-@@ -89,7 +88,6 @@ source_set("impl") {
+@@ -90,7 +89,6 @@ source_set("impl") {
      "omnibox_header_view.cc",
      "omnibox_local_answer_header_view.cc",
      "omnibox_match_cell_view.cc",

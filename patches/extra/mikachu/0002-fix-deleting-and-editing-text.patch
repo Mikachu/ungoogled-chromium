@@ -1,4 +1,4 @@
-From 0a6589664686ad3af50d68a58372b925dbe52ec8 Mon Sep 17 00:00:00 2001
+From 852919613057fa606dca7888746fc44372cb0ccf Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Thu, 18 Jun 2026 07:10:10 +0200
 Subject: [PATCH] fix deleting and editing text
@@ -11,7 +11,7 @@ Subject: [PATCH] fix deleting and editing text
  4 files changed, 22 insertions(+), 17 deletions(-)
 
 diff --git a/third_party/blink/renderer/core/editing/commands/composite_edit_command.cc b/third_party/blink/renderer/core/editing/commands/composite_edit_command.cc
-index 0fde934f03..23f70ab6bf 100644
+index b3dee24a66..badbddfbdb 100644
 --- a/third_party/blink/renderer/core/editing/commands/composite_edit_command.cc
 +++ b/third_party/blink/renderer/core/editing/commands/composite_edit_command.cc
 @@ -511,14 +511,15 @@ void CompositeEditCommand::MoveRemainingSiblingsToNewParent(
@@ -48,10 +48,10 @@ index a50b55816d..a69bb95ce6 100644
    void Prune(Node*, EditingState*, Node* exclude_node = nullptr);
    void ReplaceTextInNode(Text*,
 diff --git a/third_party/blink/renderer/core/editing/commands/delete_selection_command.cc b/third_party/blink/renderer/core/editing/commands/delete_selection_command.cc
-index c06aa42dc1..c274805064 100644
+index 1f60646073..a4b5145109 100644
 --- a/third_party/blink/renderer/core/editing/commands/delete_selection_command.cc
 +++ b/third_party/blink/renderer/core/editing/commands/delete_selection_command.cc
-@@ -627,18 +627,20 @@ void DeleteSelectionCommand::RemoveNode(
+@@ -629,18 +629,20 @@ void DeleteSelectionCommand::RemoveNode(
      return;
    }
  
@@ -84,7 +84,7 @@ index c06aa42dc1..c274805064 100644
    }
  
    // FIXME: Update the endpoints of the range being deleted.
-@@ -714,7 +716,7 @@ void DeleteSelectionCommand::RemoveCompletelySelectedNodes(
+@@ -716,7 +718,7 @@ void DeleteSelectionCommand::RemoveCompletelySelectedNodes(
    }
  
    const ShouldAssumeContentIsAlwaysEditable always_editable(
@@ -94,10 +94,10 @@ index c06aa42dc1..c274805064 100644
    for (Node* node_to_be_removed : nodes_to_be_removed) {
      if (!downstream_end_.AnchorNode()->IsDescendantOf(node_to_be_removed)) {
 diff --git a/third_party/blink/renderer/core/editing/commands/insert_paragraph_separator_command.cc b/third_party/blink/renderer/core/editing/commands/insert_paragraph_separator_command.cc
-index 96159fb1c2..320e8793ff 100644
+index 2c13f2f35b..00cec3aca8 100644
 --- a/third_party/blink/renderer/core/editing/commands/insert_paragraph_separator_command.cc
 +++ b/third_party/blink/renderer/core/editing/commands/insert_paragraph_separator_command.cc
-@@ -658,7 +658,7 @@ void InsertParagraphSeparatorCommand::DoApply(EditingState* editing_state) {
+@@ -657,7 +657,7 @@ void InsertParagraphSeparatorCommand::DoApply(EditingState* editing_state) {
      }
  
      MoveRemainingSiblingsToNewParent(n, block_to_insert, block_to_insert,

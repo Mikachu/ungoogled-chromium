@@ -1,4 +1,4 @@
-From 733e550601674eda504c16970280a6af00e0a112 Mon Sep 17 00:00:00 2001
+From cc3ae54a125decbf066a2967d5c6b9fe079bff3e Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Sun, 21 Jun 2026 16:17:35 +0200
 Subject: [PATCH] Use gtk file dialogs even without full gtk ui
@@ -101,7 +101,7 @@ index b113be5131..e52ae3f671 100644
      deps += [ "//ui/linux:linux_ui" ]
      if (use_dbus) {
 diff --git a/ui/shell_dialogs/select_file_dialog_linux_portal.cc b/ui/shell_dialogs/select_file_dialog_linux_portal.cc
-index 56a1bc0dc6..435aee4f11 100644
+index 54ad2a705c..73f275ee06 100644
 --- a/ui/shell_dialogs/select_file_dialog_linux_portal.cc
 +++ b/ui/shell_dialogs/select_file_dialog_linux_portal.cc
 @@ -31,6 +31,7 @@
@@ -112,7 +112,7 @@ index 56a1bc0dc6..435aee4f11 100644
  #include "ui/strings/grit/ui_strings.h"
  #include "ui/views/widget/desktop_aura/desktop_window_tree_host_linux.h"
  #include "url/gurl.h"
-@@ -169,6 +170,9 @@ void SelectFileDialogLinuxPortal::OnPortalAvailable(
+@@ -170,6 +171,9 @@ void SelectFileDialogLinuxPortal::OnPortalAvailable(
      if (auto* linux_ui = ui::LinuxUi::instance()) {
        fallback_dialog_ = linux_ui->CreateSelectFileDialog(listener_, nullptr);
      }

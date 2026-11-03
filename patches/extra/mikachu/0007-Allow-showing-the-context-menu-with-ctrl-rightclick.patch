@@ -1,4 +1,4 @@
-From 6220852dd5051959e15cf2a142ced5d69b31586e Mon Sep 17 00:00:00 2001
+From 45c897363af4a0270689e48b380f758bc66d959e Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Mon, 29 Jun 2026 07:32:56 +0200
 Subject: [PATCH] Allow showing the context menu with ctrl-rightclick
@@ -8,10 +8,10 @@ Subject: [PATCH] Allow showing the context menu with ctrl-rightclick
  1 file changed, 10 insertions(+), 2 deletions(-)
 
 diff --git a/third_party/blink/renderer/core/frame/web_frame_widget_impl.cc b/third_party/blink/renderer/core/frame/web_frame_widget_impl.cc
-index dd94769995..7d811ca393 100644
+index 44e834ea71..769f42ed6a 100644
 --- a/third_party/blink/renderer/core/frame/web_frame_widget_impl.cc
 +++ b/third_party/blink/renderer/core/frame/web_frame_widget_impl.cc
-@@ -1233,11 +1233,19 @@ void WebFrameWidgetImpl::MouseContextMenu(const WebMouseEvent& event) {
+@@ -1234,11 +1234,19 @@ void WebFrameWidgetImpl::MouseContextMenu(const WebMouseEvent& event) {
  
    {
      ContextMenuAllowedScope scope;
