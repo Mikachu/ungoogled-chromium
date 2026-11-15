@@ -1,4 +1,4 @@
-From 020fdef10540aa833395379f92b4e436338384dd Mon Sep 17 00:00:00 2001
+From 7b232bc9be2f776751c9bdcb3cdeac2b44b3a4b1 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Wed, 1 Jul 2026 17:09:51 +0200
 Subject: [PATCH] Open new tabs in the right place
@@ -39,7 +39,7 @@ index 1859358eac..6f9c2f14df 100644
  }
  
 diff --git a/chrome/browser/ui/startup/startup_browser_creator_impl.cc b/chrome/browser/ui/startup/startup_browser_creator_impl.cc
-index 1e34f398af..1e0225d07d 100644
+index 6b030c1f66..261aa11b51 100644
 --- a/chrome/browser/ui/startup/startup_browser_creator_impl.cc
 +++ b/chrome/browser/ui/startup/startup_browser_creator_impl.cc
 @@ -40,7 +40,6 @@
@@ -150,10 +150,10 @@ index 1e34f398af..1e0225d07d 100644
  
  }  // namespace
 diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/views/frame/browser_view.cc
-index d441b8a76b..c3c89079f8 100644
+index 764e295293..9bdc47c313 100644
 --- a/chrome/browser/ui/views/frame/browser_view.cc
 +++ b/chrome/browser/ui/views/frame/browser_view.cc
-@@ -1803,6 +1803,20 @@ bool BrowserView::IsOnCurrentWorkspace() const {
+@@ -1819,6 +1819,20 @@ bool BrowserView::IsOnCurrentWorkspace() const {
    return gfx::IsWindowOnCurrentVirtualDesktop(
               native_win->GetHost()->GetAcceleratedWidget(),
               virtual_desktop_manager) != false;

@@ -1,4 +1,4 @@
-From 0b00d7cbd9dafb1dae5f4a5641cade3c8b7a4613 Mon Sep 17 00:00:00 2001
+From cbb782bae229cb07a0edd656e26103cbd5534d73 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Wed, 1 Jul 2026 18:16:06 +0200
 Subject: [PATCH] Fix shift-insert
@@ -10,10 +10,10 @@ Subject: [PATCH] Fix shift-insert
  3 files changed, 13 insertions(+), 2 deletions(-)
 
 diff --git a/chrome/browser/ui/views/omnibox/omnibox_view_views.cc b/chrome/browser/ui/views/omnibox/omnibox_view_views.cc
-index 07b8c57308..4d69534956 100644
+index 7b2e9c4e20..17725f0cdb 100644
 --- a/chrome/browser/ui/views/omnibox/omnibox_view_views.cc
 +++ b/chrome/browser/ui/views/omnibox/omnibox_view_views.cc
-@@ -2351,8 +2351,8 @@ bool OmniboxViewViews::HandleKeyEvent(views::Textfield* textfield,
+@@ -2327,8 +2327,8 @@ bool OmniboxViewViews::HandleKeyEvent(views::Textfield* textfield,
  
      case ui::VKEY_INSERT:
        if (shift && !control &&

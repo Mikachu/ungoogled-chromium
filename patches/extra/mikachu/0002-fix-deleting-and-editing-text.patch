@@ -1,4 +1,4 @@
-From 852919613057fa606dca7888746fc44372cb0ccf Mon Sep 17 00:00:00 2001
+From a90413ffd674150a295cb0951c3f515801492115 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Thu, 18 Jun 2026 07:10:10 +0200
 Subject: [PATCH] fix deleting and editing text

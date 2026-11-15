@@ -1,4 +1,4 @@
-From 9b806771d1a7620031ef169722565a06ed024599 Mon Sep 17 00:00:00 2001
+From 3820fc0764688f0286898465dd2dad5add49f8ab Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Sun, 2 Aug 2026 06:59:39 +0200
 Subject: [PATCH] set core2 march

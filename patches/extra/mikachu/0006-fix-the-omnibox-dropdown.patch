@@ -1,4 +1,4 @@
-From 22292f79a106ccec3812e15b4378e20fcdc8d0d3 Mon Sep 17 00:00:00 2001
+From 88f68a6027c2be0d9aa9e1d5b9b654a4e05d6757 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Fri, 26 Jun 2026 19:21:03 +0200
 Subject: [PATCH] fix the omnibox dropdown
@@ -17,19 +17,19 @@ Subject: [PATCH] fix the omnibox dropdown
  delete mode 100644 chrome/browser/ui/views/omnibox/omnibox_mouse_enter_exit_handler.h
 
 diff --git a/chrome/browser/ui/views/omnibox/BUILD.gn b/chrome/browser/ui/views/omnibox/BUILD.gn
-index be19fc11a6..ae882f9686 100644
+index f1a4d68af5..7fe3ea404e 100644
 --- a/chrome/browser/ui/views/omnibox/BUILD.gn
 +++ b/chrome/browser/ui/views/omnibox/BUILD.gn
-@@ -16,7 +16,6 @@ source_set("omnibox") {
-     "omnibox_header_view.h",
+@@ -17,7 +17,6 @@ source_set("omnibox") {
+     "omnibox_latency_tracker.h",
      "omnibox_local_answer_header_view.h",
      "omnibox_match_cell_view.h",
 -    "omnibox_mouse_enter_exit_handler.h",
      "omnibox_placeholder_util.h",
      "omnibox_popup_aim_presenter.h",
      "omnibox_popup_closer.h",
-@@ -90,7 +89,6 @@ source_set("impl") {
-     "omnibox_header_view.cc",
+@@ -96,7 +95,6 @@ source_set("impl") {
+     "omnibox_latency_tracker.cc",
      "omnibox_local_answer_header_view.cc",
      "omnibox_match_cell_view.cc",
 -    "omnibox_mouse_enter_exit_handler.cc",
@@ -142,7 +142,7 @@ index b75d7e8db2..0000000000
 -
 -#endif  // CHROME_BROWSER_UI_VIEWS_OMNIBOX_OMNIBOX_MOUSE_ENTER_EXIT_HANDLER_H_
 diff --git a/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.cc b/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.cc
-index 5e47b2abe8..9798b20392 100644
+index 7093f53ee9..8db7a60843 100644
 --- a/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.cc
 +++ b/chrome/browser/ui/views/omnibox/omnibox_popup_view_views.cc
 @@ -40,6 +40,8 @@
@@ -154,7 +154,7 @@ index 5e47b2abe8..9798b20392 100644
  #include "ui/gfx/image/image.h"
  #include "ui/views/accessibility/view_accessibility.h"
  #include "ui/views/cascading_property.h"
-@@ -255,6 +257,23 @@ void OmniboxPopupViewViews::WidgetObserverHelper::OnWidgetDestroying(
+@@ -241,6 +243,23 @@ void OmniboxPopupViewViews::WidgetObserverHelper::OnWidgetDestroying(
    popup_view_->OnWidgetDestroying(widget);
  }
  
@@ -178,7 +178,7 @@ index 5e47b2abe8..9798b20392 100644
  OmniboxPopupViewViews::OmniboxPopupViewViews(OmniboxViewViews* omnibox_view,
                                               OmniboxController* controller,
                                               LocationBarView* location_bar_view)
-@@ -275,6 +294,11 @@ OmniboxPopupViewViews::OmniboxPopupViewViews(OmniboxViewViews* omnibox_view,
+@@ -261,6 +280,11 @@ OmniboxPopupViewViews::OmniboxPopupViewViews(OmniboxViewViews* omnibox_view,
    SetLayoutManager(std::make_unique<views::BoxLayout>(
        views::BoxLayout::Orientation::kVertical));
  
@@ -190,7 +190,7 @@ index 5e47b2abe8..9798b20392 100644
    GetViewAccessibility().SetRole(ax::mojom::Role::kListBox);
    UpdateAccessibleStates();
    UpdateAccessibleControlIds();
-@@ -282,6 +306,7 @@ OmniboxPopupViewViews::OmniboxPopupViewViews(OmniboxViewViews* omnibox_view,
+@@ -268,6 +292,7 @@ OmniboxPopupViewViews::OmniboxPopupViewViews(OmniboxViewViews* omnibox_view,
  }
  
  OmniboxPopupViewViews::~OmniboxPopupViewViews() {
@@ -198,7 +198,7 @@ index 5e47b2abe8..9798b20392 100644
    // We don't need to close or delete `widget_` here. The OS either has already
    // closed the window, in which case it's been deleted, or it will soon.
    if (widget_) {
-@@ -292,6 +317,25 @@ OmniboxPopupViewViews::~OmniboxPopupViewViews() {
+@@ -278,6 +303,25 @@ OmniboxPopupViewViews::~OmniboxPopupViewViews() {
    UpdateAccessibleControlIds();
  }
  
@@ -224,7 +224,7 @@ index 5e47b2abe8..9798b20392 100644
  gfx::Image OmniboxPopupViewViews::GetMatchIcon(
      const AutocompleteMatch& match,
      SkColor vector_icon_color) const {
-@@ -354,6 +398,7 @@ void OmniboxPopupViewViews::UpdatePopupAppearance() {
+@@ -340,6 +384,7 @@ void OmniboxPopupViewViews::UpdatePopupAppearance() {
  
    if (!should_be_open) {
      if (was_open) {
@@ -285,7 +285,7 @@ index f8698d2934..72a99c43b8 100644
    base::ScopedObservation<OmniboxEditModel, OmniboxEditModel::Observer>
        edit_model_observation_{this};
 diff --git a/chrome/browser/ui/views/omnibox/omnibox_result_view.cc b/chrome/browser/ui/views/omnibox/omnibox_result_view.cc
-index 65eba79e0d..51760eabf9 100644
+index a722105773..5410712d09 100644
 --- a/chrome/browser/ui/views/omnibox/omnibox_result_view.cc
 +++ b/chrome/browser/ui/views/omnibox/omnibox_result_view.cc
 @@ -152,11 +152,7 @@ END_METADATA

@@ -1,4 +1,4 @@
-From cc3ae54a125decbf066a2967d5c6b9fe079bff3e Mon Sep 17 00:00:00 2001
+From 9ccbf8c229f38b2a532bc265e6a169a49e9c0931 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Sun, 21 Jun 2026 16:17:35 +0200
 Subject: [PATCH] Use gtk file dialogs even without full gtk ui
@@ -89,10 +89,10 @@ index 714cb4ec5c..02ffc020d5 100644
    std::string ui_toolkit = base::ToLowerASCII(
        cmd_line->GetSwitchValueASCII(switches::kUiToolkitFlag));
 diff --git a/ui/shell_dialogs/BUILD.gn b/ui/shell_dialogs/BUILD.gn
-index b113be5131..e52ae3f671 100644
+index 088708fefa..e099107582 100644
 --- a/ui/shell_dialogs/BUILD.gn
 +++ b/ui/shell_dialogs/BUILD.gn
-@@ -57,6 +57,7 @@ component("shell_dialogs") {
+@@ -54,6 +54,7 @@ component("shell_dialogs") {
        "select_file_dialog_linux.cc",
        "select_file_dialog_linux.h",
        "shell_dialog_linux.cc",

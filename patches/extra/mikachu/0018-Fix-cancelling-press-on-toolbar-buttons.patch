@@ -1,4 +1,4 @@
-From 71d0ccdd53ff6ec58ed2b67f26c9e72505561f9e Mon Sep 17 00:00:00 2001
+From e1e92401dc7f5e321d1e00bac140f9c06bb4d051 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Fri, 30 Oct 2026 04:11:51 +0100
 Subject: [PATCH] Fix cancelling press on toolbar buttons
@@ -11,10 +11,10 @@ Previous code would trigger the menu when cursor was far off to the side, and sp
  3 files changed, 19 insertions(+), 22 deletions(-)
 
 diff --git a/chrome/browser/resources/webui_toolbar_shared/toolbar_button.ts b/chrome/browser/resources/webui_toolbar_shared/toolbar_button.ts
-index d5666c3436..bc3a5efb60 100644
+index 4933a7f7d0..e40caf9633 100644
 --- a/chrome/browser/resources/webui_toolbar_shared/toolbar_button.ts
 +++ b/chrome/browser/resources/webui_toolbar_shared/toolbar_button.ts
-@@ -150,8 +150,6 @@ interface ContextMenuState {
+@@ -165,8 +165,6 @@ interface ContextMenuState {
    activeElement: HTMLElement|null;
  
    longPressTimer: TimerHelper;
@@ -23,7 +23,7 @@ index d5666c3436..bc3a5efb60 100644
  }
  
  // Tests if a mouse event occurred over the given HTMLElement. Since shadow DOM
-@@ -210,7 +208,6 @@ function isMouseEventOverTarget(e: MouseEvent, target: HTMLElement) {
+@@ -225,7 +223,6 @@ function isMouseEventOverTarget(e: MouseEvent, target: HTMLElement) {
  export class PressHandler {
    // This follows what is done in the views' ToolbarButton.
    private static readonly LONG_PRESS_TIMER_THRESHOLD_MS = 500;
@@ -31,7 +31,7 @@ index d5666c3436..bc3a5efb60 100644
    private static readonly NO_ACTIVE_POINTER_ID = -1;
  
    private onLongPress_: (source: MenuSourceType) => void;
-@@ -234,20 +231,26 @@ export class PressHandler {
+@@ -249,20 +246,26 @@ export class PressHandler {
          activePointerId: PressHandler.NO_ACTIVE_POINTER_ID,
          activeElement: null,
          longPressTimer: new TimerHelper(),
@@ -64,7 +64,7 @@ index d5666c3436..bc3a5efb60 100644
        this.resetContextMenuState_();
      }
    };
-@@ -334,7 +337,6 @@ export class PressHandler {
+@@ -349,7 +352,6 @@ export class PressHandler {
        this.onLongPress_(MenuSourceType.kLongPress);
      }, PressHandler.LONG_PRESS_TIMER_THRESHOLD_MS);
  
@@ -73,10 +73,10 @@ index d5666c3436..bc3a5efb60 100644
    };
  
 diff --git a/chrome/browser/ui/views/toolbar/toolbar_button.cc b/chrome/browser/ui/views/toolbar/toolbar_button.cc
-index d4c4f01c14..ae0f46b93a 100644
+index 6f2feb0481..09f8041e1e 100644
 --- a/chrome/browser/ui/views/toolbar/toolbar_button.cc
 +++ b/chrome/browser/ui/views/toolbar/toolbar_button.cc
-@@ -461,11 +461,6 @@ gfx::Rect ToolbarButton::GetAnchorBoundsInScreen() const {
+@@ -457,11 +457,6 @@ gfx::Rect ToolbarButton::GetAnchorBoundsInScreen() const {
  bool ToolbarButton::OnMousePressed(const ui::MouseEvent& event) {
    if (trigger_menu_on_long_press_ && IsTriggerableEvent(event) &&
        GetEnabled() && ShouldShowMenu() && HitTestPoint(event.location())) {
@@ -88,7 +88,7 @@ index d4c4f01c14..ae0f46b93a 100644
      // Schedule a task that will show the menu.
      base::SingleThreadTaskRunner::GetCurrentDefault()->PostDelayedTask(
          FROM_HERE,
-@@ -482,12 +477,15 @@ bool ToolbarButton::OnMouseDragged(const ui::MouseEvent& event) {
+@@ -478,12 +473,15 @@ bool ToolbarButton::OnMouseDragged(const ui::MouseEvent& event) {
    bool result = LabelButton::OnMouseDragged(event);
  
    if (trigger_menu_on_long_press_ && show_menu_factory_.HasWeakPtrs()) {
@@ -109,10 +109,10 @@ index d4c4f01c14..ae0f46b93a 100644
    }
  
 diff --git a/chrome/browser/ui/views/toolbar/toolbar_button.h b/chrome/browser/ui/views/toolbar/toolbar_button.h
-index 0fcdbfa57b..ba64dcdd86 100644
+index d07788186e..d96d270f5f 100644
 --- a/chrome/browser/ui/views/toolbar/toolbar_button.h
 +++ b/chrome/browser/ui/views/toolbar/toolbar_button.h
-@@ -351,9 +351,6 @@ class ToolbarButton : public views::LabelButton,
+@@ -340,9 +340,6 @@ class ToolbarButton : public views::LabelButton,
    // TODO(crbug.com/40258442): Remove this member after issue is addressed.
    bool has_in_product_help_promo_ = false;
  
