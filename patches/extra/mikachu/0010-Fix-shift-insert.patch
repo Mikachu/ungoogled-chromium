@@ -1,4 +1,4 @@
-From cbb782bae229cb07a0edd656e26103cbd5534d73 Mon Sep 17 00:00:00 2001
+From 9d388bc51c14887176d114a3b281d7b32481d330 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Wed, 1 Jul 2026 18:16:06 +0200
 Subject: [PATCH] Fix shift-insert

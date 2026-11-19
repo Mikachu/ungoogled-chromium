@@ -1,4 +1,4 @@
-From e1e92401dc7f5e321d1e00bac140f9c06bb4d051 Mon Sep 17 00:00:00 2001
+From 58109935d801d5c4ec0144fb84c9bca7e758901a Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Fri, 30 Oct 2026 04:11:51 +0100
 Subject: [PATCH] Fix cancelling press on toolbar buttons

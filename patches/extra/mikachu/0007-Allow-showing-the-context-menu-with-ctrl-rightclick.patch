@@ -1,4 +1,4 @@
-From 3d7b26a4766d53317f6a2a6b0a1cc3f7c90860a0 Mon Sep 17 00:00:00 2001
+From 3afe752d8970fdec724b685d5ca011faa84b67de Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Mon, 29 Jun 2026 07:32:56 +0200
 Subject: [PATCH] Allow showing the context menu with ctrl-rightclick

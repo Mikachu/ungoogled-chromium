@@ -1,4 +1,4 @@
-From 78d4e8b82452e4da08d4becdcee16000e18ff3c3 Mon Sep 17 00:00:00 2001
+From b9e5ad0cf2d9a2af10f25bc52c30068a449c4e15 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Wed, 1 Jul 2026 17:40:00 +0200
 Subject: [PATCH] fix backspace in location entry

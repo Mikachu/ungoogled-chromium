@@ -1,4 +1,4 @@
-From 3665d44e8356c54a5c31129c0b024598e0920d14 Mon Sep 17 00:00:00 2001
+From 6079a13c1b2e5b0087639bc06e41c1b94a3cf869 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Sat, 25 Jul 2026 06:02:51 +0200
 Subject: [PATCH] Make tab groups pinnable button show highlight
@@ -10,10 +10,10 @@ Subject: [PATCH] Make tab groups pinnable button show highlight
  3 files changed, 28 insertions(+)
 
 diff --git a/chrome/browser/ui/browser_actions.cc b/chrome/browser/ui/browser_actions.cc
-index f9b0917b41..e3a3b2ed9c 100644
+index 7e1e87bf06..fbd0ff10fa 100644
 --- a/chrome/browser/ui/browser_actions.cc
 +++ b/chrome/browser/ui/browser_actions.cc
-@@ -1384,6 +1384,7 @@ void BrowserActions::InitializeChromeMenuActions() {
+@@ -1389,6 +1389,7 @@ void BrowserActions::InitializeChromeMenuActions() {
                    return;
                  }
                  gfx::Rect anchor_bounds;
@@ -21,7 +21,7 @@ index f9b0917b41..e3a3b2ed9c 100644
                  auto* toolbar_button_provider =
                      bwi->GetBrowserForMigrationOnly()
                          ->GetBrowserView()
-@@ -1397,15 +1398,30 @@ void BrowserActions::InitializeChromeMenuActions() {
+@@ -1402,15 +1403,30 @@ void BrowserActions::InitializeChromeMenuActions() {
                              .GetIfView();
                      if (anchor_view) {
                        anchor_bounds = anchor_view->GetBoundsInScreen();

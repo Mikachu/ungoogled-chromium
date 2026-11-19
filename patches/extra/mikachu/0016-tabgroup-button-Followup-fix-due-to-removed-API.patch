@@ -1,4 +1,4 @@
-From d87caff4d6eaca283bd9d34c926a0b4bb821363a Mon Sep 17 00:00:00 2001
+From 7c65b52725f9f72a9f397e029189250cc83df542 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Thu, 10 Sep 2026 02:57:14 +0200
 Subject: [PATCH] tabgroup button Followup fix due to removed API
@@ -8,10 +8,10 @@ Subject: [PATCH] tabgroup button Followup fix due to removed API
  1 file changed, 16 insertions(+), 17 deletions(-)
 
 diff --git a/chrome/browser/ui/browser_actions.cc b/chrome/browser/ui/browser_actions.cc
-index e3a3b2ed9c..e84f4ab4cf 100644
+index fbd0ff10fa..4d8983acbd 100644
 --- a/chrome/browser/ui/browser_actions.cc
 +++ b/chrome/browser/ui/browser_actions.cc
-@@ -1386,8 +1386,7 @@ void BrowserActions::InitializeChromeMenuActions() {
+@@ -1391,8 +1391,7 @@ void BrowserActions::InitializeChromeMenuActions() {
                  gfx::Rect anchor_bounds;
                  PinnedActionToolbarButton* button = nullptr;
                  auto* toolbar_button_provider =
@@ -21,7 +21,7 @@ index e3a3b2ed9c..e84f4ab4cf 100644
                          .toolbar_button_provider();
                  if (toolbar_button_provider) {
                    auto* pinned_actions =
-@@ -1402,26 +1401,26 @@ void BrowserActions::InitializeChromeMenuActions() {
+@@ -1407,26 +1406,26 @@ void BrowserActions::InitializeChromeMenuActions() {
                      }
                    }
                  }

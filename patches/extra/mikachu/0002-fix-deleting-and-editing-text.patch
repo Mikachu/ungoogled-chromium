@@ -1,4 +1,4 @@
-From a90413ffd674150a295cb0951c3f515801492115 Mon Sep 17 00:00:00 2001
+From 07d019e1f989f293f7fb3038b7e106da267ab1ea Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Thu, 18 Jun 2026 07:10:10 +0200
 Subject: [PATCH] fix deleting and editing text
@@ -11,7 +11,7 @@ Subject: [PATCH] fix deleting and editing text
  4 files changed, 22 insertions(+), 17 deletions(-)
 
 diff --git a/third_party/blink/renderer/core/editing/commands/composite_edit_command.cc b/third_party/blink/renderer/core/editing/commands/composite_edit_command.cc
-index b3dee24a66..badbddfbdb 100644
+index 318708d6df..5094f45ac8 100644
 --- a/third_party/blink/renderer/core/editing/commands/composite_edit_command.cc
 +++ b/third_party/blink/renderer/core/editing/commands/composite_edit_command.cc
 @@ -511,14 +511,15 @@ void CompositeEditCommand::MoveRemainingSiblingsToNewParent(

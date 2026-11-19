@@ -1,4 +1,4 @@
-From 88f68a6027c2be0d9aa9e1d5b9b654a4e05d6757 Mon Sep 17 00:00:00 2001
+From 460e08491894223304f6480232d8f7c7f0331dd9 Mon Sep 17 00:00:00 2001
 From: Mikael Magnusson <mikachu@gmail.com>
 Date: Fri, 26 Jun 2026 19:21:03 +0200
 Subject: [PATCH] fix the omnibox dropdown
